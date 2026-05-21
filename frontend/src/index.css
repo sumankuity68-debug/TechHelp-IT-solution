@@ -1,0 +1,121 @@
+/* FILE: frontend/src/index.css
+   Global styles + theme CSS variables.
+   Import Google Fonts here too.
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── Design Tokens (Default: Light Mode) ─── */
+:root {
+  --bg-primary:    #ffffff;      /* Pure White */
+  --bg-secondary:  #f8f9fa;      /* Bootstrap Light Gray */
+  --bg-tertiary:   #e9ecef;      /* Input focus / border hover */
+  --text-primary:  #212529;      /* Bootstrap Dark Gray */
+  --text-secondary:#495057;      /* Medium Gray */
+  --text-muted:    #6c757d;      /* Bootstrap Muted Gray */
+  --accent-color:  #007bff;      /* Bootstrap Blue */
+  --accent-hover:  #0056b3;      /* Darker Blue Hover */
+  --gold:          #ffc107;      /* Yellow Stars */
+  --border-color:  #dee2e6;      /* Bootstrap Border Gray */
+  
+  --nav-bg:          rgba(255, 255, 255, 0.7);
+  --nav-bg-scrolled: rgba(255, 255, 255, 0.95);
+  --nav-border:      rgba(0, 0, 0, 0.08);
+  
+  /* Fallbacks for standard CSS rendering */
+  --navy:          var(--bg-primary);
+  --cream:         var(--text-primary);
+  --muted:         var(--text-secondary);
+}
+
+/* ─── Dark Mode Override ─── */
+[data-theme="dark"] {
+  --bg-primary:    #121212;      /* Pure Dark Background */
+  --bg-secondary:  #1e1e1e;      /* Card Dark Background */
+  --bg-tertiary:   #2d2d2d;      /* Input Dark Background */
+  --text-primary:  #f8f9fa;      /* Very Light Gray Text */
+  --text-secondary:#cbd5e1;      /* Medium Light Text */
+  --text-muted:    #a8a8a8;      /* Muted Gray Text */
+  --accent-color:  #0d6efd;      /* Bright Blue */
+  --accent-hover:  #0b5ed7;      /* Bright Blue Hover */
+  --gold:          #ffc107;      /* Warning Gold */
+  --nav-bg:          rgba(18, 18, 18, 0.7);
+  --nav-bg-scrolled: rgba(18, 18, 18, 0.95);
+  --nav-border:      rgba(255, 255, 255, 0.08);
+}
+
+/* ─── Base ─── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* ─── Typography helpers ─── */
+.font-display { font-family: 'Fraunces', Georgia, serif; }
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+
+/* ─── Reusable button classes ─── */
+.btn-primary {
+  display: inline-block;
+  background: var(--accent-color);
+  color: #ffffff;
+  padding: 13px 30px;
+  border-radius: 4px;
+  font-size: 15px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  text-decoration: none;
+}
+.btn-primary:hover { background: var(--accent-hover); }
+
+.btn-outline {
+  display: inline-block;
+  background: transparent;
+  color: var(--text-primary);
+  padding: 12px 30px;
+  border-radius: 4px;
+  font-size: 15px;
+  font-weight: 400;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  text-decoration: none;
+}
+.btn-outline:hover { border-color: var(--accent-color); background: rgba(0, 123, 255, 0.05); }
+
+/* ─── Section spacing ─── */
+.section { padding: 100px 5%; }
+.section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-color);
+  margin-bottom: 20px;
+}
+.section-label::before {
+  content: '';
+  display: block;
+  width: 28px; height: 1px;
+  background: var(--accent-color);
+}
