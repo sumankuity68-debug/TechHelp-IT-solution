@@ -1,0 +1,21 @@
+{
+  "name": "careernest",
+  "version": "1.0.0",
+  "description": "TechHelp IT Solutions is a professional IT services agency platform designed to deliver premium custom software, cloud architecture, and web development. This project features a responsive frontend built on **React + Vite**, a clean visual design supporting dynamic **Light/Dark modes**, interactive **3D parallax visual elements**, and a custom **client rating system**.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sumankuity68-debug/TechHelp-IT-solution.git"
+  },
+  "keywords": [],
+  "author": "Suman",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/sumankuity68-debug/TechHelp-IT-solution/issues"
+  },
+  "homepage": "https://github.com/sumankuity68-debug/TechHelp-IT-solution#readme"
+}
