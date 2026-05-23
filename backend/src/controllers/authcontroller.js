@@ -1,4 +1,3 @@
-
 import jwt from 'jsonwebtoken';
 import User from '../models/user.js';
 
@@ -7,7 +6,6 @@ const generateToken = (id) => {
     expiresIn: process.env.JWT_EXPIRE || '30d',
   });
 };
-
 
 export const register = async (req, res) => {
   try {
@@ -33,7 +31,6 @@ export const register = async (req, res) => {
       password,
     });
 
-    
     const token = generateToken(user._id);
 
     res.status(201).json({
@@ -55,7 +52,6 @@ export const register = async (req, res) => {
     });
   }
 };
-
 
 export const login = async (req, res) => {
   try {
@@ -102,6 +98,7 @@ export const login = async (req, res) => {
     });
   }
 };
+
 export const getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
@@ -113,6 +110,10 @@ export const getMe = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        avatar: user.avatar,
+        phone: user.phone,
+        address: user.address,
+        bio: user.bio,
         createdAt: user.createdAt,
       },
     });
@@ -121,6 +122,40 @@ export const getMe = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error fetching user data',
+    });
+  }
+};
+
+export const updateProfile = async (req, res) => {
+  try {
+    const { name, phone, address, bio, avatar } = req.body;
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
+      { name, phone, address, bio, avatar },
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: {
+        id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        avatar: updatedUser.avatar,
+        phone: updatedUser.phone,
+        address: updatedUser.address,
+        bio: updatedUser.bio,
+        createdAt: updatedUser.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error updating profile',
     });
   }
 };
