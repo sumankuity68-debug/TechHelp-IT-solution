@@ -1,7 +1,7 @@
 {
   "name": "techhelp-backend",
-  "version": "1.0.0",
-  "description": "Backend API for TechHelp IT Solutions",
+  "version": "0.3.0",
+  "description": "REST API backend for TechHelp IT Solutions — Express, MongoDB, JWT authentication",
   "main": "index.js",
   "type": "module",
   "scripts": {
@@ -13,18 +13,20 @@
   "keywords": [
     "express",
     "mongodb",
+    "mongoose",
     "jwt",
-    "rest-api"
+    "rest-api",
+    "nodejs"
   ],
-  "author": "Suman",
-  "license": "ISC",
+  "author": "Suman Kuity",
+  "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
-    "mongoose": "^8.0.3",
-    "dotenv": "^16.3.1",
     "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
-    "cors": "^2.8.5"
+    "mongoose": "^8.0.3"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

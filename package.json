@@ -1,19 +1,29 @@
 {
-  "name": "careernest",
-  "version": "1.0.0",
-  "description": "TechHelp IT Solutions is a professional IT services agency platform designed to deliver premium custom software, cloud architecture, and web development. This project features a responsive frontend built on **React + Vite**, a clean visual design supporting dynamic **Light/Dark modes**, interactive **3D parallax visual elements**, and a custom **client rating system**.",
+  "name": "techhelp-it-solutions",
+  "version": "0.3.0",
+  "description": "Full-stack IT agency web app with React, Node.js, Express, and MongoDB. Includes JWT auth, services management, contact form, and admin controls.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/sumankuity68-debug/TechHelp-IT-solution.git"
   },
-  "keywords": [],
-  "author": "Suman",
-  "license": "ISC",
-  "type": "commonjs",
+  "keywords": [
+    "react",
+    "nodejs",
+    "express",
+    "mongodb",
+    "jwt",
+    "fullstack",
+    "it-agency",
+    "rest-api"
+  ],
+  "author": "Suman Kuity",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/sumankuity68-debug/TechHelp-IT-solution/issues"
   },
