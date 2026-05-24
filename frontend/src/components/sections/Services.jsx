@@ -1,8 +1,9 @@
 // FILE: frontend/src/components/sections/Services.jsx
-// Services grid with interactive 3D Card Tilt effects
-// Used in: pages/HomePage.jsx
+// Services grid with 3D tilt cards + Ask an Expert inquiry modal
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const services = [
   {
@@ -10,203 +11,451 @@ const services = [
     title: 'Web & Enterprise Systems',
     desc: 'Scalable web applications built with React, Node.js, and MongoDB. Secure architectures, fast load times, and cloud integration.',
     tags: ['React', 'Node.js', 'MongoDB', 'REST APIs'],
+    inquiries: 148,
+    expert: { name: 'Arjun Sharma', role: 'Senior Full-Stack Engineer', avatar: 'AS' },
+    color: '#3b82f6',
   },
   {
     number: '02',
     title: 'Custom Software & APIs',
     desc: 'High-performance API design, microservices orchestration, and database tuning to drive your core operational needs.',
     tags: ['Microservices', 'GraphQL', 'Express', 'SQL/NoSQL'],
+    inquiries: 94,
+    expert: { name: 'Priya Mehta', role: 'Backend Architecture Lead', avatar: 'PM' },
+    color: '#8b5cf6',
   },
   {
     number: '03',
     title: 'Cloud & DevOps Solutions',
     desc: 'Reliable cloud migrations, CI/CD pipeline automation, and containerized configurations for uninterrupted operations.',
     tags: ['AWS', 'Docker', 'GitHub Actions', 'Serverless'],
+    inquiries: 112,
+    expert: { name: 'Rahul Bose', role: 'Cloud Infrastructure Architect', avatar: 'RB' },
+    color: '#10b981',
   },
   {
     number: '04',
     title: 'Digital Experience & UI',
     desc: 'Intuitive interface designs that map out seamless user flows. Interactive prototypes and stunning visuals designed for conversions.',
     tags: ['Figma', 'Prototyping', 'Design Systems'],
+    inquiries: 73,
+    expert: { name: 'Sneha Das', role: 'Lead UX Designer', avatar: 'SD' },
+    color: '#f59e0b',
   },
 ];
 
-function ServiceCard({ s }) {
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
-  const [hovered, setHovered] = useState(false);
+// ── Ask Expert Modal ─────────────────────────────────────────────────────────
+function AskExpertModal({ service, onClose }) {
+  const { user, token } = useAuth();
+  const navigate = useNavigate();
+  const [form, setForm] = useState({
+    name:    user?.name    || '',
+    email:   user?.email   || '',
+    service: service.title,
+    message: '',
+  });
+  const [loading,   setLoading]   = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error,     setError]     = useState('');
 
-  const handleMouseMove = (e) => {
-    const card = e.currentTarget;
-    const box = card.getBoundingClientRect();
-    const x = e.clientX - box.left;
-    const y = e.clientY - box.top;
-    
-    // Normalized position from -0.5 to 0.5
-    const px = (x / box.width) - 0.5;
-    const py = (y / box.height) - 0.5;
-    
-    // Max tilt is 12 degrees
-    setTilt({
-      x: -py * 12,
-      y: px * 12,
-    });
+  // Close on Escape key
+  useEffect(() => {
+    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.message.trim()) { setError('Please write your question'); return; }
+    setError(''); setLoading(true);
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to send');
+      setSubmitted(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleMouseLeave = () => {
-    setHovered(false);
-    setTilt({ x: 0, y: 0 });
-  };
-
-  const cardStyle = {
-    background: 'var(--bg-secondary)',
+  const inp = {
+    width: '100%', padding: '11px 14px',
+    background: 'var(--bg-primary)',
     border: '1px solid var(--border-color)',
-    borderRadius: 8,
-    padding: '40px 36px',
-    cursor: 'pointer',
-    position: 'relative',
-    overflow: 'hidden',
-    transformStyle: 'preserve-3d',
-    transform: hovered 
-      ? `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) scale(1.02)` 
-      : 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1)',
-    transition: hovered 
-      ? 'transform 0.1s ease-out, background 0.3s, box-shadow 0.3s' 
-      : 'transform 0.5s ease-out, background 0.3s, box-shadow 0.3s',
-    boxShadow: hovered 
-      ? '0 20px 40px rgba(0, 0, 0, 0.15), inset 0 1px 0 var(--border-color)' 
-      : '0 4px 12px rgba(0, 0, 0, 0.05)',
+    borderRadius: 6, color: 'var(--text-primary)',
+    fontSize: 14, outline: 'none',
+    transition: 'border-color 0.2s', boxSizing: 'border-box',
   };
 
   return (
+    // Backdrop
     <div
-      style={cardStyle}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={handleMouseLeave}
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 1000,
+        background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '20px',
+      }}
     >
-      {/* 3D Parallax Reflection/Glow */}
-      {hovered && (
+      {/* Modal box */}
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: 520,
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border-color)',
+          borderRadius: 12,
+          boxShadow: '0 24px 64px rgba(0,0,0,0.3)',
+          overflow: 'hidden',
+          animation: 'modalIn 0.2s ease',
+        }}
+      >
+        {/* Header bar */}
         <div style={{
-          position: 'absolute',
-          inset: 0,
-          background: `radial-gradient(circle at ${tilt.y * 10 + 50}% ${-tilt.x * 10 + 50}%, rgba(0, 123, 255, 0.04) 0%, transparent 60%)`,
-          pointerEvents: 'none',
-          zIndex: 1,
-        }} />
-      )}
-
-      {/* Large number watermark (moves counter to tilt to exaggerate 3D depth) */}
-      <div style={{
-        fontFamily: 'Fraunces, serif',
-        fontSize: 88, fontWeight: 700,
-        color: 'rgba(0, 123, 255, 0.03)',
-        position: 'absolute', top: 8, right: 16,
-        lineHeight: 1, userSelect: 'none',
-        transform: hovered 
-          ? `translate3d(${-tilt.y * 1.5}px, ${tilt.x * 1.5}px, 15px)` 
-          : 'translate3d(0, 0, 0)',
-        transition: 'transform 0.1s ease-out',
-        zIndex: 0,
-      }}>
-        {s.number}
-      </div>
-
-      {/* Floating inner content block */}
-      <div style={{
-        transform: hovered ? 'translateZ(30px)' : 'translateZ(0px)',
-        transition: 'transform 0.2s ease-out',
-        zIndex: 2,
-        position: 'relative',
-      }}>
-        {/* Number */}
-        <div style={{
-          fontSize: 12, fontWeight: 600, letterSpacing: '0.12em',
-          color: 'var(--accent-color)', marginBottom: 20,
+          padding: '20px 24px 18px',
+          borderBottom: '1px solid var(--border-color)',
+          background: `linear-gradient(135deg, ${service.color}18, transparent)`,
+          display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
         }}>
-          {s.number}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', color: service.color, textTransform: 'uppercase', marginBottom: 4 }}>
+              Ask an Expert · Service {service.number}
+            </div>
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+              {service.title}
+            </h3>
+          </div>
+          <button onClick={onClose} style={{
+            width: 32, height: 32, borderRadius: '50%', border: '1px solid var(--border-color)',
+            background: 'var(--bg-primary)', color: 'var(--text-secondary)',
+            fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            flexShrink: 0,
+          }}>×</button>
         </div>
 
-        {/* Title */}
-        <h3 style={{
-          fontFamily: 'Fraunces, serif',
-          fontSize: 22, fontWeight: 600,
-          color: 'var(--text-primary)', marginBottom: 16,
-        }}>
-          {s.title}
-        </h3>
+        <div style={{ padding: '20px 24px 24px' }}>
+          {/* Expert badge */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            background: 'var(--bg-primary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 8, padding: '12px 14px', marginBottom: 20,
+          }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: '50%',
+              background: service.color, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 13, fontWeight: 700, color: '#fff', flexShrink: 0,
+            }}>{service.expert.avatar}</div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+                {service.expert.name}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                {service.expert.role} · will reply by email
+              </div>
+            </div>
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#10b981', display: 'inline-block', animation: 'pulse 2s infinite' }} />
+              <span style={{ fontSize: 11, color: '#10b981', fontWeight: 500 }}>Online</span>
+            </div>
+          </div>
 
-        {/* Description */}
-        <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.75, marginBottom: 28 }}>
-          {s.desc}
-        </p>
+          {/* If not logged in — gate */}
+          {!user ? (
+            <div style={{ textAlign: 'center', padding: '24px 0' }}>
+              <div style={{ fontSize: 40, marginBottom: 12 }}>🔒</div>
+              <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 20, lineHeight: 1.6 }}>
+                Please sign in to ask our expert a question.<br />
+                We'll reply directly to your email.
+              </p>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                <Link to="/login" onClick={onClose} style={{
+                  padding: '10px 22px', background: service.color,
+                  color: '#fff', borderRadius: 6, textDecoration: 'none', fontSize: 13, fontWeight: 500,
+                }}>Sign In</Link>
+                <Link to="/signup" onClick={onClose} style={{
+                  padding: '10px 22px', background: 'transparent',
+                  color: 'var(--text-primary)', border: '1px solid var(--border-color)',
+                  borderRadius: 6, textDecoration: 'none', fontSize: 13,
+                }}>Create Account</Link>
+              </div>
+            </div>
+          ) : submitted ? (
+            // Success state
+            <div style={{ textAlign: 'center', padding: '24px 0' }}>
+              <div style={{
+                width: 56, height: 56, borderRadius: '50%',
+                background: 'rgba(16,185,129,0.12)',
+                border: '2px solid rgba(16,185,129,0.3)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 26, margin: '0 auto 16px',
+              }}>✓</div>
+              <h4 style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 8 }}>
+                Question Sent!
+              </h4>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 20 }}>
+                <strong>{service.expert.name}</strong> will reply to <strong>{form.email}</strong> within 24 hours.
+              </p>
+              <button onClick={onClose} style={{
+                padding: '10px 24px', background: service.color,
+                color: '#fff', border: 'none', borderRadius: 6,
+                fontSize: 13, fontWeight: 500, cursor: 'pointer',
+              }}>Done</button>
+            </div>
+          ) : (
+            // Form
+            <form onSubmit={handleSubmit}>
+              {error && (
+                <div style={{
+                  background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
+                  borderRadius: 6, padding: '10px 14px', color: '#ef4444',
+                  fontSize: 13, marginBottom: 16,
+                }}>{error}</div>
+              )}
 
-        {/* Tags */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {s.tags.map(tag => (
-            <span key={tag} style={{
-              padding: '4px 12px',
-              border: '1px solid var(--border-color)',
-              borderRadius: 3,
-              fontSize: 12, color: 'var(--text-secondary)',
-            }}>
-              {tag}
-            </span>
-          ))}
-        </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Your Name
+                  </label>
+                  <input
+                    value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                    required placeholder="Full name" style={inp}
+                    onFocus={e => e.target.style.borderColor = service.color}
+                    onBlur={e => e.target.style.borderColor = 'var(--border-color)'}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Reply Email
+                  </label>
+                  <input
+                    value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
+                    required type="email" placeholder="you@example.com" style={inp}
+                    onFocus={e => e.target.style.borderColor = service.color}
+                    onBlur={e => e.target.style.borderColor = 'var(--border-color)'}
+                  />
+                </div>
+              </div>
 
-        {/* Arrow (shifts horizontally on hover) */}
-        <div style={{
-          marginTop: 32, fontSize: 18,
-          color: 'var(--accent-color)',
-          transform: hovered ? 'translateX(6px)' : 'translateX(0)',
-          transition: 'transform 0.2s ease',
-        }}>
-          →
+              <div style={{ marginBottom: 18 }}>
+                <label style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Your Question
+                </label>
+                <textarea
+                  value={form.message} onChange={e => setForm(p => ({ ...p, message: e.target.value }))}
+                  required rows={4} placeholder={`Ask anything about ${service.title}...`}
+                  style={{ ...inp, resize: 'vertical' }}
+                  onFocus={e => e.target.style.borderColor = service.color}
+                  onBlur={e => e.target.style.borderColor = 'var(--border-color)'}
+                />
+              </div>
+
+              <button type="submit" disabled={loading} style={{
+                width: '100%', padding: '13px',
+                background: loading ? `${service.color}80` : service.color,
+                color: '#fff', border: 'none', borderRadius: 6,
+                fontSize: 14, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'background 0.2s',
+              }}>
+                {loading ? 'Sending...' : `📩 Send to ${service.expert.name.split(' ')[0]}`}
+              </button>
+
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', marginTop: 10 }}>
+                Replies within 24 hours · No spam, ever
+              </p>
+            </form>
+          )}
         </div>
       </div>
     </div>
   );
 }
 
+// ── Service Card ─────────────────────────────────────────────────────────────
+function ServiceCard({ s }) {
+  const [tilt,     setTilt]    = useState({ x: 0, y: 0 });
+  const [hovered,  setHovered] = useState(false);
+  const [showModal, setModal]  = useState(false);
+
+  const handleMouseMove = (e) => {
+    const box = e.currentTarget.getBoundingClientRect();
+    const px = (e.clientX - box.left) / box.width - 0.5;
+    const py = (e.clientY - box.top) / box.height - 0.5;
+    setTilt({ x: -py * 12, y: px * 12 });
+  };
+
+  return (
+    <>
+      <div
+        style={{
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border-color)',
+          borderRadius: 8, padding: '40px 36px',
+          cursor: 'default', position: 'relative', overflow: 'hidden',
+          transformStyle: 'preserve-3d',
+          transform: hovered
+            ? `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) scale(1.02)`
+            : 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1)',
+          transition: hovered
+            ? 'transform 0.1s ease-out, box-shadow 0.3s'
+            : 'transform 0.5s ease-out, box-shadow 0.3s',
+          boxShadow: hovered
+            ? `0 20px 40px rgba(0,0,0,0.12), 0 0 0 1px ${s.color}22`
+            : '0 4px 12px rgba(0,0,0,0.05)',
+        }}
+        onMouseMove={handleMouseMove}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => { setHovered(false); setTilt({ x: 0, y: 0 }); }}
+      >
+        {/* Glow */}
+        {hovered && (
+          <div style={{
+            position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1,
+            background: `radial-gradient(circle at ${tilt.y * 10 + 50}% ${-tilt.x * 10 + 50}%, ${s.color}08 0%, transparent 60%)`,
+          }} />
+        )}
+
+        {/* Watermark number */}
+        <div style={{
+          fontFamily: 'Fraunces, serif', fontSize: 88, fontWeight: 700,
+          color: `${s.color}06`,
+          position: 'absolute', top: 8, right: 16, lineHeight: 1, userSelect: 'none',
+          transform: hovered ? `translate3d(${-tilt.y * 1.5}px, ${tilt.x * 1.5}px, 15px)` : 'translate3d(0,0,0)',
+          transition: 'transform 0.1s ease-out', zIndex: 0,
+        }}>{s.number}</div>
+
+        {/* Content */}
+        <div style={{
+          transform: hovered ? 'translateZ(30px)' : 'translateZ(0px)',
+          transition: 'transform 0.2s ease-out', zIndex: 2, position: 'relative',
+        }}>
+          {/* Number label */}
+          <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: '0.12em', color: s.color, marginBottom: 20 }}>
+            {s.number}
+          </div>
+
+          {/* Title */}
+          <h3 style={{ fontFamily: 'Fraunces, serif', fontSize: 22, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 16 }}>
+            {s.title}
+          </h3>
+
+          {/* Description */}
+          <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.75, marginBottom: 24 }}>
+            {s.desc}
+          </p>
+
+          {/* Tags */}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
+            {s.tags.map(tag => (
+              <span key={tag} style={{
+                padding: '4px 12px', border: '1px solid var(--border-color)',
+                borderRadius: 3, fontSize: 12, color: 'var(--text-secondary)',
+              }}>{tag}</span>
+            ))}
+          </div>
+
+          {/* Inquiry count */}
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 7,
+            background: `${s.color}10`, border: `1px solid ${s.color}25`,
+            borderRadius: 20, padding: '5px 12px', marginBottom: 20,
+          }}>
+            <span style={{
+              width: 7, height: 7, borderRadius: '50%', background: '#10b981', flexShrink: 0,
+              boxShadow: '0 0 0 2px rgba(16,185,129,0.25)', animation: 'pulse 2s infinite',
+            }} />
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>
+              <strong style={{ color: s.color }}>{s.inquiries}</strong> inquiries this month
+            </span>
+          </div>
+
+          {/* Divider */}
+          <div style={{ height: 1, background: 'var(--border-color)', marginBottom: 18 }} />
+
+          {/* Expert preview row */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: '50%', background: s.color,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 11, fontWeight: 700, color: '#fff', flexShrink: 0,
+              }}>{s.expert.avatar}</div>
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{s.expert.name}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{s.expert.role.split(' ').slice(0, 2).join(' ')}</div>
+              </div>
+            </div>
+
+            {/* Ask Expert button */}
+            <button
+              onClick={() => setModal(true)}
+              style={{
+                padding: '8px 16px',
+                background: s.color,
+                color: '#fff', border: 'none', borderRadius: 6,
+                fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                transition: 'opacity 0.2s, transform 0.15s',
+                whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.opacity = '0.88'; e.currentTarget.style.transform = 'scale(1.04)'; }}
+              onMouseLeave={e => { e.currentTarget.style.opacity = '1';    e.currentTarget.style.transform = 'scale(1)'; }}
+            >
+              Ask Expert →
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Modal */}
+      {showModal && <AskExpertModal service={s} onClose={() => setModal(false)} />}
+    </>
+  );
+}
+
+// ── Section ──────────────────────────────────────────────────────────────────
 export default function Services() {
   return (
     <section id="services" className="section" style={{ background: 'var(--bg-primary)', transition: 'background 0.3s' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-
-        {/* Header */}
         <div style={{ marginBottom: 60 }}>
           <div className="section-label">What We Do</div>
-          <div style={{
-            display: 'flex', justifyContent: 'space-between',
-            alignItems: 'flex-end', flexWrap: 'wrap', gap: 20,
-          }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 20 }}>
             <h2 style={{
-              fontFamily: 'Fraunces, serif',
-              fontSize: 'clamp(32px, 4vw, 50px)',
-              fontWeight: 700, lineHeight: 1.1,
-              color: 'var(--text-primary)', letterSpacing: '-1px',
-              maxWidth: 480,
+              fontFamily: 'Fraunces, serif', fontSize: 'clamp(32px, 4vw, 50px)',
+              fontWeight: 700, lineHeight: 1.1, color: 'var(--text-primary)',
+              letterSpacing: '-1px', maxWidth: 480,
             }}>
               Enterprise solutions designed for <em style={{ fontStyle: 'italic', color: 'var(--accent-color)' }}>results.</em>
             </h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: 15, maxWidth: 360, lineHeight: 1.7 }}>
-              End-to-end IT services. We cover modern cloud architecture, backend systems, and responsive designs.
+              End-to-end IT services. Click <strong style={{ color: 'var(--accent-color)' }}>Ask Expert</strong> on any card to get answers directly from our specialists.
             </p>
           </div>
         </div>
 
-        {/* Grid */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: 24,
-        }}>
-          {services.map((s, i) => (
-            <ServiceCard key={i} s={s} />
-          ))}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
+          {services.map((s, i) => <ServiceCard key={i} s={s} />)}
         </div>
-
       </div>
+
+      <style>{`
+        @keyframes modalIn {
+          from { opacity: 0; transform: scale(0.95) translateY(10px); }
+          to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+      `}</style>
     </section>
   );
 }
