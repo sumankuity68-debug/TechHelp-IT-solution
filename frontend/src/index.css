@@ -10,92 +10,92 @@
 
 /* ─── Design Tokens (Default: Light Mode) ─── */
 :root {
-  --bg-primary:    #ffffff;
-  --bg-secondary:  #f8f9fa;
-  --bg-tertiary:   #e9ecef;
-  --input-bg:      #ffffff;
-  --text-primary:  #212529;
-  --text-secondary:#495057;
-  --text-muted:    #6c757d;
-  --accent-color:  #007bff;
-  --accent-hover:  #0056b3;
+  --bg-primary:       #ffffff;
+  --bg-secondary:     #f8f9fa;
+  --bg-tertiary:      #e9ecef;
+  --input-bg:         #ffffff;
+  --text-primary:     #212529;
+  --text-secondary:   #495057;
+  --text-muted:       #6c757d;
+  --accent-color:     #007bff;
+  --accent-hover:     #0056b3;
   --accent-color-dim: #93c5fd;
-  --gold:          #ffc107;
-  --border-color:  #dee2e6;
-  --border:        rgba(0, 0, 0, 0.1);
-  --nav-bg:          rgba(255, 255, 255, 0.7);
-  --nav-bg-scrolled: rgba(255, 255, 255, 0.95);
-  --nav-border:      rgba(0, 0, 0, 0.08);
-  --navy:          var(--bg-primary);
-  --cream:         var(--text-primary);
-  --muted:         var(--text-secondary);
-}
+  --gold:             #ffc107;
+  --border-color:     #dee2e6;
+  --border:           rgba(0, 0, 0, 0.1);
+  --nav-bg:           rgba(255, 255, 255, 0.7);
+  --nav-bg-scrolled:  rgba(255, 255, 255, 0.95);
+  --nav-border:       rgba(0, 0, 0, 0.08);
+  --navy:             var(--bg-primary);
+  --cream:            var(--text-primary);
+  --muted:            var(--text-secondary);
 
-/* ─── Dark Mode ─── */
-[data-theme="dark"] {
-  --bg-primary:    #121212;
-  --bg-secondary:  #1e1e1e;
-  --bg-tertiary:   #2d2d2d;
-  --input-bg:      rgba(255, 255, 255, 0.04);
-  --text-primary:  #f8f9fa;
-  --text-secondary:#cbd5e1;
-  --text-muted:    #a8a8a8;
-  --accent-color:  #0d6efd;
-  --accent-hover:  #0b5ed7;
-  --accent-color-dim: #1e40af;
-  --gold:          #ffc107;
-  --border-color:  rgba(255,255,255,0.1);
-  --border:        rgba(255, 255, 255, 0.1);
-  --nav-bg:          rgba(18, 18, 18, 0.7);
-  --nav-bg-scrolled: rgba(18, 18, 18, 0.95);
-  --nav-border:      rgba(255, 255, 255, 0.08);
-}
-
-
-
-/* ─── Design Tokens (Default: Light Mode) ─── */
-:root {
-  --bg-primary:    #ffffff;      /* Pure White */
-  --bg-secondary:  #f8f9fa;      /* Bootstrap Light Gray */
-  --bg-tertiary:   #e9ecef;      /* Input focus / border hover */
-  --text-primary:  #212529;      /* Bootstrap Dark Gray */
-  --text-secondary:#495057;      /* Medium Gray */
-  --text-muted:    #6c757d;      /* Bootstrap Muted Gray */
-  --accent-color:  #007bff;      /* Bootstrap Blue */
-  --accent-hover:  #0056b3;      /* Darker Blue Hover */
-  --gold:          #ffc107;      /* Yellow Stars */
-  --border-color:  #dee2e6;      /* Bootstrap Border Gray */
-  
-  --nav-bg:          rgba(255, 255, 255, 0.7);
-  --nav-bg-scrolled: rgba(255, 255, 255, 0.95);
-  --nav-border:      rgba(0, 0, 0, 0.08);
-  
-  /* Fallbacks for standard CSS rendering */
-  --navy:          var(--bg-primary);
-  --cream:         var(--text-primary);
-  --muted:         var(--text-secondary);
+  /* Dashboard Theme Variables (Light Mode) */
+  --dash-bg: linear-gradient(135deg, #e0e7ff 0%, #f1f5f9 50%, #f3e8ff 100%);
+  --dash-card-bg: rgba(255, 255, 255, 0.35);
+  --dash-card-border: 1px solid rgba(255, 255, 255, 0.45);
+  --dash-card-shadow: 0 8px 32px rgba(31, 38, 135, 0.06);
+  --dash-text-primary: #1e293b;
+  --dash-text-secondary: #475569;
+  --dash-text-muted: #64748b;
+  --dash-btn-bg: rgba(255, 255, 255, 0.5);
+  --dash-btn-border: 1px solid rgba(255, 255, 255, 0.6);
+  --dash-btn-text: #4f46e5;
+  --dash-btn-hover-bg: rgba(255, 255, 255, 0.7);
+  --dash-btn-pro-bg: #4f46e5;
+  --dash-btn-pro-text: #ffffff;
+  --dash-list-item-bg: rgba(255, 255, 255, 0.25);
+  --dash-list-item-hover: rgba(255, 255, 255, 0.4);
+  --dash-avatar-bg: rgba(102, 126, 234, 0.15);
 }
 
 /* ─── Dark Mode Override ─── */
 [data-theme="dark"] {
-  --bg-primary:    #121212;      /* Pure Dark Background */
-  --bg-secondary:  #1e1e1e;      /* Card Dark Background */
-  --bg-tertiary:   #2d2d2d;      /* Input Dark Background */
-  --text-primary:  #f8f9fa;      /* Very Light Gray Text */
-  --text-secondary:#cbd5e1;      /* Medium Light Text */
-  --text-muted:    #a8a8a8;      /* Muted Gray Text */
-  --accent-color:  #0d6efd;      /* Bright Blue */
-  --accent-hover:  #0b5ed7;      /* Bright Blue Hover */
-  --gold:          #ffc107;      /* Warning Gold */
-  --nav-bg:          rgba(18, 18, 18, 0.7);
-  --nav-bg-scrolled: rgba(18, 18, 18, 0.95);
-  --nav-border:      rgba(255, 255, 255, 0.08);
+  --bg-primary:       #121212;
+  --bg-secondary:     #1e1e1e;
+  --bg-tertiary:      #2d2d2d;
+  --input-bg:         rgba(255, 255, 255, 0.04);
+  --text-primary:     #f8f9fa;
+  --text-secondary:   #cbd5e1;
+  --text-muted:       #a8a8a8;
+  --accent-color:     #0d6efd;
+  --accent-hover:     #0b5ed7;
+  --accent-color-dim: #1e40af;
+  --gold:             #ffc107;
+  --border-color:     rgba(255, 255, 255, 0.1);
+  --border:           rgba(255, 255, 255, 0.1);
+  --nav-bg:           rgba(18, 18, 18, 0.7);
+  --nav-bg-scrolled:  rgba(18, 18, 18, 0.95);
+  --nav-border:       rgba(255, 255, 255, 0.08);
+
+  /* Dashboard Theme Variables (Dark Mode) */
+  --dash-bg: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #2e1065 100%);
+  --dash-card-bg: rgba(15, 23, 42, 0.45);
+  --dash-card-border: 1px solid rgba(255, 255, 255, 0.08);
+  --dash-card-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+  --dash-text-primary: #f9fafb;
+  --dash-text-secondary: #d1d5db;
+  --dash-text-muted: #9ca3af;
+  --dash-btn-bg: rgba(255, 255, 255, 0.08);
+  --dash-btn-border: 1px solid rgba(255, 255, 255, 0.1);
+  --dash-btn-text: #ffffff;
+  --dash-btn-hover-bg: rgba(255, 255, 255, 0.15);
+  --dash-btn-pro-bg: #ffffff;
+  --dash-btn-pro-text: #111827;
+  --dash-list-item-bg: rgba(255, 255, 255, 0.03);
+  --dash-list-item-hover: rgba(255, 255, 255, 0.06);
+  --dash-avatar-bg: rgba(255, 255, 255, 0.15);
 }
 
 /* ─── Base ─── */
-* { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  /* Ensure theme background covers the whole viewport before JS loads */
+  background: var(--bg-primary);
+  transition: background 0.3s ease;
+}
 
 body {
   font-family: 'DM Sans', sans-serif;

@@ -9,13 +9,31 @@ const generateToken = (id) => {
 
 export const register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role, adminCode } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
         message: 'Please provide name, email, and password',
       });
+    }
+
+    if (role === 'admin') {
+      const VALID_ADMIN_CODE = process.env.ADMIN_SECRET_CODE || 'TECHHELP2026ADMIN';
+      
+      if (!adminCode) {
+        return res.status(400).json({
+          success: false,
+          message: 'Admin verification code is required',
+        });
+      }
+
+      if (adminCode !== VALID_ADMIN_CODE) {
+        return res.status(403).json({
+          success: false,
+          message: 'Invalid admin verification code. Access denied.',
+        });
+      }
     }
 
     const userExists = await User.findOne({ email });
@@ -25,17 +43,19 @@ export const register = async (req, res) => {
         message: 'User already exists with this email',
       });
     }
+
     const user = await User.create({
       name,
       email,
       password,
+      role: role || 'user', 
     });
 
     const token = generateToken(user._id);
 
     res.status(201).json({
       success: true,
-      message: 'User registered successfully',
+      message: `${role === 'admin' ? 'Admin' : 'User'} registered successfully`,
       token,
       user: {
         id: user._id,
@@ -88,6 +108,11 @@ export const login = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        avatar: user.avatar,
+        phone: user.phone,
+        address: user.address,
+        bio: user.bio,
+        createdAt: user.createdAt,
       },
     });
   } catch (error) {

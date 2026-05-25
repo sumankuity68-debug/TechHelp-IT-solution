@@ -7,6 +7,7 @@ import connectDB from './src/config/db.js';
 import authRoutes from './src/routes/auth.routes.js';
 import contactRoutes from './src/routes/contact.routes.js';
 import servicesRoutes from './src/routes/services.routes.js';
+import testimonialRoutes from './src/routes/testimonial.routes.js';
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use('/api/auth', authRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/services', servicesRoutes);
+app.use('/api/testimonials', testimonialRoutes);
 
 app.get('/api/health', (req, res) => {
     res.status(200).json({

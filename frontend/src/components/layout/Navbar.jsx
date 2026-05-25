@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 
 const navLinks = [
   { label: 'About',        to: '/about'        },
@@ -14,11 +15,11 @@ const navLinks = [
 
 export default function Navbar() {
   const [scrolled, setScrolled]     = useState(false);
-  const [theme, setTheme]           = useState(() => localStorage.getItem('theme') || 'dark');
   const [dropdownOpen, setDropdown] = useState(false);
   const dropRef                     = useRef(null);
   const { user, logout }            = useAuth();
   const navigate                    = useNavigate();
+  const { theme, toggleTheme }      = useTheme();
 
   // Scroll shadow
   useEffect(() => {
@@ -27,11 +28,7 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Theme
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
-  }, [theme]);
+  // Theme is managed globally by ThemeContext
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -44,7 +41,6 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
   const handleLogout = () => {
     logout();
@@ -162,8 +158,8 @@ export default function Navbar() {
                   {/* Menu items */}
                   {[
                     { label: '👤  My Profile', to: '/profile' },
-                    { label: '📊  Dashboard',  to: '/dashboard' },
-                    { label: '📬  My Inquiries', to: '/dashboard' },
+                    { label: '📊  Dashboard',  to: user.role === 'admin' ? '/admin' : '/dashboard' },
+                    { label: user.role === 'admin' ? '📬  All Inquiries' : '📬  My Inquiries', to: user.role === 'admin' ? '/admin' : '/dashboard' },
                   ].map(item => (
                     <Link
                       key={item.label}
