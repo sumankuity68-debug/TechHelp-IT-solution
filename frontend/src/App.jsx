@@ -13,6 +13,9 @@ import ContactPage from './pages/ContactPage';
 import RatingPage from './pages/RatingPage';
 import LoginPage from './pages/auth/LoginPage';
 import SignupPage from './pages/auth/SignupPage';
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from './pages/auth/ResetPasswordPage';
+import VerifyEmailPage from './pages/auth/VerifyEmailPage';
 import UserDashboard from './pages/dashboard/UserDashboard';
 import ProfilePage from './pages/ProfilePage';
 import AdminDashboard from './pages/admin/admindashboard';
@@ -31,11 +34,13 @@ function App() {
             <Route path="/testimonials" element={<Layout><TestimonialsPage /></Layout>} />
             <Route path="/contact" element={<Layout><ContactPage /></Layout>} />
             <Route path="/rate" element={<Layout><RatingPage /></Layout>} />
-            
+
             {/* Auth pages (standalone - no Layout) */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
-
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+            <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
             {/* Protected routes - User Dashboard */}
             <Route
               path="/dashboard"
@@ -57,14 +62,14 @@ function App() {
             />
 
             {/* Admin routes */}
-             <Route
+            <Route
               path="/admin"
               element={
                 <ProtectedRoute requireAdmin={true}>
                   <AdminDashboard />
                 </ProtectedRoute>
               }
-            /> 
+            />
           </Routes>
         </AuthProvider>
       </Router>
@@ -72,4 +77,4 @@ function App() {
   );
 }
 
-export default App;
+export default App;

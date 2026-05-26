@@ -1,5 +1,4 @@
-// FILE: frontend/src/pages/ContactPage.jsx
-// Dedicated route for the Contact (Start a Project) section
+
 
 import { Link } from 'react-router-dom';
 import Contact from '../components/sections/Contact';

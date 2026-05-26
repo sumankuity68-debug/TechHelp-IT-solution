@@ -31,6 +31,26 @@ const userSchema = new mongoose.Schema(
       enum: ['user', 'admin'],
       default: 'user',
     },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    verificationToken: {
+      type: String,
+      default: null,
+    },
+    verificationTokenExpire: {
+      type: Date,
+      default: null,
+    },
+    resetPasswordToken: {
+      type: String,
+      default: null,
+    },
+    resetPasswordExpire: {
+      type: Date,
+      default: null,
+    },
     avatar: {
       type: String,
       default: '',
@@ -69,6 +89,54 @@ userSchema.pre('save', async function (next) {
 
 userSchema.methods.comparePassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
+};
+import crypto from 'crypto';
+
+userSchema.methods.getResetPasswordToken = function () {
+  // Generate random token
+  const resetToken = crypto.randomBytes(32).toString('hex');
+
+  // Hash token and save to database
+  this.resetPasswordToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+
+  // Set expiry (1 hour from now)
+  this.resetPasswordExpire = Date.now() + 60 * 60 * 1000; // 1 hour
+
+  return resetToken; // Return unhashed token (to send in email)
+};
+userSchema.methods.getVerificationToken = function () {
+  // Generate random 6-digit numeric verification code
+  const verifyToken = Math.floor(100000 + Math.random() * 900000).toString();
+
+  // Hash token and save to database
+  this.verificationToken = crypto
+    .createHash('sha256')
+    .update(verifyToken)
+    .digest('hex');
+
+  // Set expiry (24 hours from now)
+  this.verificationTokenExpire = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+
+  return verifyToken; // Return unhashed token
+};
+
+userSchema.methods.getResetPasswordOTP = function () {
+  // Generate random 6-digit OTP code
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+  // Hash OTP and save to database (we reuse the resetPasswordToken field)
+  this.resetPasswordToken = crypto
+    .createHash('sha256')
+    .update(otp)
+    .digest('hex');
+
+  // Set expiry (15 minutes from now)
+  this.resetPasswordExpire = Date.now() + 15 * 60 * 1000;
+
+  return otp;
 };
 
 const User = mongoose.model('User', userSchema);

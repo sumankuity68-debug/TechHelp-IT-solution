@@ -2,13 +2,13 @@
 // Full profile page — update avatar, name, phone, address, bio
 
 import { useState, useRef } from 'react';
-import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function ProfilePage() {
-  const { user, updateProfile, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user, updateProfile } = useAuth();
   const fileRef = useRef(null);
+  const navigate = useNavigate();
 
   const [form, setForm] = useState({
     name:    user?.name    || '',
@@ -79,20 +79,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
-      {/* Top bar */}
-      <div style={{
-        background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)',
-        padding: '0 6%', height: 62, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      }}>
-        <button onClick={() => navigate('/')} style={{
-          background: 'none', border: 'none', color: 'var(--accent-color)',
-          fontSize: 14, cursor: 'pointer', fontWeight: 500,
-        }}>← Back to Home</button>
-        <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>My Profile</span>
-        <div style={{ width: 90 }} />
-      </div>
-
+    <div style={{ background: 'var(--bg-primary)' }}>
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '48px 5%' }}>
         <h1 style={{ fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
           Profile Settings
@@ -227,16 +214,33 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* Save button */}
-          <button type="submit" disabled={saving} style={{
-            width: '100%', padding: '14px',
-            background: saving ? 'rgba(59,130,246,0.6)' : 'var(--accent-color)',
-            color: '#fff', border: 'none', borderRadius: 8,
-            fontSize: 15, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer',
-            transition: 'background 0.2s',
-          }}>
-            {saving ? 'Saving...' : 'Save Changes'}
-          </button>
+          {/* Action Buttons */}
+          <div style={{ display: 'flex', gap: 16, marginTop: 24 }}>
+            <button type="submit" disabled={saving} style={{
+              flex: 1, padding: '14px',
+              background: saving ? 'rgba(59,130,246,0.6)' : 'var(--accent-color)',
+              color: '#fff', border: 'none', borderRadius: 8,
+              fontSize: 15, fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer',
+              transition: 'background 0.2s',
+            }}>
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+
+            <button type="button" onClick={() => navigate('/')} style={{
+              flex: 1, padding: '14px',
+              background: 'transparent',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border)',
+              borderRadius: 8,
+              fontSize: 15, fontWeight: 600, cursor: 'pointer',
+              transition: 'all 0.2s',
+            }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              Go to Home →
+            </button>
+          </div>
         </form>
       </div>
     </div>

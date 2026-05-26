@@ -1,5 +1,3 @@
-// FILE: frontend/src/pages/AboutPage.jsx
-// Dedicated route for the About section
 
 import { Link } from 'react-router-dom';
 import About from '../components/sections/About';

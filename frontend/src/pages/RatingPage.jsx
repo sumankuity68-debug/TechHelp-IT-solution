@@ -1,15 +1,34 @@
 // FILE: frontend/src/pages/RatingPage.jsx
 // Interactive Rating Feedback page for TechHelp IT Solutions
 
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function RatingPage() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [rating, setRating] = useState(5);
   const [hoverRating, setHoverRating] = useState(0);
-  const [form, setForm] = useState({ name: '', role: '', project: '', text: '' });
+  const [form, setForm] = useState({
+    name: user?.name || '',
+    role: user?.role === 'admin' ? 'Admin, TechHelp' : '',
+    project: '',
+    text: '',
+  });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  // Auto-redirect to testimonials page after submission
+  useEffect(() => {
+    if (submitted) {
+      const timer = setTimeout(() => {
+        navigate('/testimonials');
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [submitted, navigate]);
 
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -18,10 +37,33 @@ export default function RatingPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate API call (prepared for Week 2 REST endpoints)
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setLoading(false);
-    setSubmitted(true);
+    setError('');
+    try {
+      const res = await fetch('/api/testimonials', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: form.name,
+          role: form.role,
+          project: form.project,
+          rating: rating,
+          text: form.text,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to submit feedback');
+      }
+
+      setSubmitted(true);
+    } catch (err) {
+      setError(err.message || 'Server error submitting feedback');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const inputStyle = {
@@ -86,8 +128,8 @@ export default function RatingPage() {
               <p style={{ color: 'var(--text-secondary)', fontSize: 15, lineHeight: 1.6, marginBottom: 36 }}>
                 Thank you for rating your experience with TechHelp IT Solutions. Your feedback is extremely valuable as we continuously refine our engineering standards.
               </p>
-              <Link to="/" className="btn-primary" style={{ display: 'inline-block', textDecoration: 'none' }}>
-                Go back to Homepage
+              <Link to="/testimonials" className="btn-primary" style={{ display: 'inline-block', textDecoration: 'none' }}>
+                View Testimonials
               </Link>
             </div>
           ) : (
@@ -190,6 +232,21 @@ export default function RatingPage() {
                   onBlur={e => e.target.style.borderColor = 'var(--border-color)'}
                 />
               </div>
+
+              {error && (
+                <div style={{
+                  background: 'rgba(239, 68, 68, 0.1)',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  borderRadius: 6,
+                  padding: '11px 16px',
+                  color: '#ef4444',
+                  fontSize: 13,
+                  marginBottom: 20,
+                  textAlign: 'left'
+                }}>
+                  ⚠️ {error}
+                </div>
+              )}
 
               <button
                 type="submit"
