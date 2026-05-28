@@ -3,11 +3,11 @@ import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import connectDB from './src/config/db.js';
-
 import authRoutes from './src/routes/auth.routes.js';
 import contactRoutes from './src/routes/contact.routes.js';
 import servicesRoutes from './src/routes/services.routes.js';
 import testimonialRoutes from './src/routes/testimonial.routes.js';
+import userRoutes from './src/routes/user.routes.js';
 
 dotenv.config();
 
@@ -23,7 +23,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/services', servicesRoutes);
 app.use('/api/testimonials', testimonialRoutes);
-
+app.use('/api/users', userRoutes);
 app.get('/api/health', (req, res) => {
     res.status(200).json({
         success: true,

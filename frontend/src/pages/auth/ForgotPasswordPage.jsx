@@ -8,9 +8,11 @@
 // ────────────────────────────────────────────────────────────────────────
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useToast } from '../../context/ToastContext';
 
 export default function ForgotPasswordPage() {
   const navigate = useNavigate();
+  const { showSuccess } = useToast();
   
   // Wizard state: 1 (Find), 2 (Confirm), 3 (Verify & Reset)
   const [step, setStep] = useState(1);
@@ -107,7 +109,7 @@ export default function ForgotPasswordPage() {
         throw new Error(data.message || 'Failed to reset password');
       }
 
-      alert('Password reset successful! You can now login with your new password.');
+      showSuccess('Password reset successful! You can now login with your new password.');
       navigate('/login');
     } catch (err) {
       setError(err.message);
@@ -343,14 +345,8 @@ export default function ForgotPasswordPage() {
                 borderRadius: 8,
                 textAlign: 'left',
               }}>
-                <input 
-                  type="radio" 
-                  id="email-method" 
-                  checked 
-                  readOnly 
-                  style={{ accentColor: '#667eea', width: 16, height: 16 }}
-                />
-                <label htmlFor="email-method" style={{ fontSize: 13, color: '#334155', cursor: 'pointer' }}>
+                <span style={{ fontSize: 16 }}>✉️</span>
+                <label style={{ fontSize: 13, color: '#334155', fontWeight: 500 }}>
                   Send OTP Code via email
                 </label>
               </div>

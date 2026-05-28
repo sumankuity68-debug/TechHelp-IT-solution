@@ -1,8 +1,50 @@
 import Service from '../models/Service.js';
 
+// Auto-seed default services
+const seedDefaultServices = async () => {
+  const defaults = [
+    {
+      num: '01',
+      title: 'Web & Enterprise Systems',
+      description: 'Scalable web applications built with React, Node.js, and MongoDB. Secure architectures, fast load times, and cloud integration.',
+      tags: ['React', 'Node.js', 'MongoDB', 'REST APIs'],
+      isActive: true,
+    },
+    {
+      num: '02',
+      title: 'Custom Software & APIs',
+      description: 'High-performance API design, microservices orchestration, and database tuning to drive your core operational needs.',
+      tags: ['Microservices', 'GraphQL', 'Express', 'SQL/NoSQL'],
+      isActive: true,
+    },
+    {
+      num: '03',
+      title: 'Cloud & DevOps Solutions',
+      description: 'Reliable cloud migrations, CI/CD pipeline automation, and containerized configurations for uninterrupted operations.',
+      tags: ['AWS', 'Docker', 'GitHub Actions', 'Serverless'],
+      isActive: true,
+    },
+    {
+      num: '04',
+      title: 'Digital Experience & UI',
+      description: 'Intuitive interface designs that map out seamless user flows. Interactive prototypes and stunning visuals designed for conversions.',
+      tags: ['Figma', 'Prototyping', 'Design Systems'],
+      isActive: true,
+    },
+  ];
+
+  await Service.insertMany(defaults);
+};
+
 export const getAllServices = async (req, res) => {
   try {
-    const services = await Service.find({ isActive: true }).sort({ num: 1 });
+    const count = await Service.countDocuments();
+    if (count === 0) {
+      await seedDefaultServices();
+    }
+
+    const filter = req.query.all === 'true' ? {} : { isActive: true };
+    const services = await Service.find(filter).sort({ num: 1 });
 
     res.status(200).json({
       success: true,

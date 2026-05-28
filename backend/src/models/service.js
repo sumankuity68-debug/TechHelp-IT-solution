@@ -2,6 +2,12 @@ import mongoose from 'mongoose';
 
 const serviceSchema = new mongoose.Schema(
   {
+    num: {
+      type: String,
+      required: [true, 'Service number is required'],
+      unique: true,
+      trim: true,
+    },
     title: {
       type: String,
       required: [true, 'Service title is required'],
@@ -17,6 +23,10 @@ const serviceSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: 'default',
+    },
+    tags: {
+      type: [String],
+      default: [],
     },
     isActive: {
       type: Boolean,

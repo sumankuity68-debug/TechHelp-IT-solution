@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
-const services = [
+const defaultServices = [
   {
     number: '01',
     title: 'Web & Enterprise Systems',
@@ -426,6 +426,108 @@ function ServiceCard({ s }) {
 
 // ── Section ──────────────────────────────────────────────────────────────────
 export default function Services() {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const res = await fetch('/api/services');
+        const data = await res.json();
+        if (data.success) {
+          setItems(data.data);
+        } else {
+          setItems(defaultServices.map((ds, idx) => ({
+            _id: `default-${idx}`,
+            num: ds.number,
+            title: ds.title,
+            description: ds.desc,
+            tags: ds.tags,
+            isActive: true
+          })));
+        }
+      } catch (err) {
+        console.error('Error fetching services:', err);
+        setItems(defaultServices.map((ds, idx) => ({
+          _id: `default-${idx}`,
+          num: ds.number,
+          title: ds.title,
+          description: ds.desc,
+          tags: ds.tags,
+          isActive: true
+        })));
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchServices();
+  }, []);
+
+  const mapService = (s, index) => {
+    const matched = defaultServices.find(ds => ds.number === s.num);
+    const colors = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ec4899', '#6366f1'];
+    const experts = [
+      { name: 'Arjun Sharma', role: 'Senior Full-Stack Engineer', avatar: 'AS' },
+      { name: 'Priya Mehta', role: 'Backend Architecture Lead', avatar: 'PM' },
+      { name: 'Rahul Bose', role: 'Cloud Infrastructure Architect', avatar: 'RB' },
+      { name: 'Sneha Das', role: 'Lead UX Designer', avatar: 'SD' },
+    ];
+
+    return {
+      _id: s._id,
+      number: s.num || `0${index + 1}`,
+      title: s.title,
+      desc: s.description,
+      tags: s.tags || [],
+      inquiries: matched ? matched.inquiries : (100 + (index * 15) % 80),
+      expert: matched ? matched.expert : experts[index % experts.length],
+      color: matched ? matched.color : colors[index % colors.length],
+    };
+  };
+
+  if (loading) {
+    return (
+      <section id="services" className="section" style={{ background: 'var(--bg-primary)' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <div style={{ marginBottom: 60 }}>
+            <div className="section-label">What We Do</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 20 }}>
+              <div className="skeleton" style={{ width: '400px', height: '40px', marginBottom: '10px' }} />
+              <div className="skeleton" style={{ width: '300px', height: '20px' }} />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 8, padding: '40px 36px', height: '350px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <div>
+                  <div className="skeleton" style={{ width: '30px', height: '14px', marginBottom: '20px' }} />
+                  <div className="skeleton" style={{ width: '70%', height: '22px', marginBottom: '16px' }} />
+                  <div className="skeleton" style={{ width: '100%', height: '14px', marginBottom: '10px' }} />
+                  <div className="skeleton" style={{ width: '90%', height: '14px', marginBottom: '24px' }} />
+                  <div style={{ display: 'flex', gap: 8, marginBottom: '20px' }}>
+                    <div className="skeleton" style={{ width: '60px', height: '20px', borderRadius: '4px' }} />
+                    <div className="skeleton" style={{ width: '50px', height: '20px', borderRadius: '4px' }} />
+                  </div>
+                </div>
+                <div>
+                  <div className="skeleton" style={{ width: '100px', height: '24px', borderRadius: '20px', marginBottom: '18px' }} />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                      <div className="skeleton" style={{ width: '32px', height: '32px', borderRadius: '50%' }} />
+                      <div className="skeleton" style={{ width: '80px', height: '14px' }} />
+                    </div>
+                    <div className="skeleton" style={{ width: '80px', height: '28px', borderRadius: '6px' }} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section id="services" className="section" style={{ background: 'var(--bg-primary)', transition: 'background 0.3s' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
@@ -446,7 +548,7 @@ export default function Services() {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
-          {services.map((s, i) => <ServiceCard key={i} s={s} />)}
+          {items.map((s, i) => <ServiceCard key={s._id || i} s={mapService(s, i)} />)}
         </div>
       </div>
 

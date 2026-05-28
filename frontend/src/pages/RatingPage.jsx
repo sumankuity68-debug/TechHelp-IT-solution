@@ -2,19 +2,22 @@
 // Interactive Rating Feedback page for TechHelp IT Solutions
 
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function RatingPage() {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const navigate = useNavigate();
-  const [rating, setRating] = useState(5);
+  const location = useLocation();
+  const editTestimonial = location.state?.editTestimonial;
+
+  const [rating, setRating] = useState(editTestimonial ? editTestimonial.rating : 5);
   const [hoverRating, setHoverRating] = useState(0);
   const [form, setForm] = useState({
-    name: user?.name || '',
-    role: user?.role === 'admin' ? 'Admin, TechHelp' : '',
-    project: '',
-    text: '',
+    name: editTestimonial ? editTestimonial.name : (user?.name || ''),
+    role: editTestimonial ? editTestimonial.role : (user?.role === 'admin' ? 'Admin, TechHelp' : ''),
+    project: editTestimonial ? editTestimonial.project : '',
+    text: editTestimonial ? editTestimonial.text : '',
   });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -39,10 +42,13 @@ export default function RatingPage() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/testimonials', {
-        method: 'POST',
+      const url = editTestimonial ? `/api/testimonials/${editTestimonial._id}` : '/api/testimonials';
+      const method = editTestimonial ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method: method,
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           name: form.name,
@@ -124,9 +130,11 @@ export default function RatingPage() {
               <h2 style={{
                 fontFamily: 'Fraunces, serif', fontSize: 26,
                 color: 'var(--text-primary)', marginBottom: 12,
-              }}>Feedback Submitted!</h2>
+              }}>{editTestimonial ? 'Feedback Updated!' : 'Feedback Submitted!'}</h2>
               <p style={{ color: 'var(--text-secondary)', fontSize: 15, lineHeight: 1.6, marginBottom: 36 }}>
-                Thank you for rating your experience with TechHelp IT Solutions. Your feedback is extremely valuable as we continuously refine our engineering standards.
+                {editTestimonial
+                  ? 'Your rating and feedback have been successfully updated.'
+                  : 'Thank you for rating your experience with TechHelp IT Solutions. Your feedback is extremely valuable as we continuously refine our engineering standards.'}
               </p>
               <Link to="/testimonials" className="btn-primary" style={{ display: 'inline-block', textDecoration: 'none' }}>
                 View Testimonials
@@ -140,10 +148,12 @@ export default function RatingPage() {
                   fontSize: 32, fontWeight: 700, color: 'var(--text-primary)',
                   letterSpacing: '-0.5px', marginBottom: 10,
                 }}>
-                  Rate Our Work
+                  {editTestimonial ? 'Edit Your Rating' : 'Rate Our Work'}
                 </h1>
                 <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.5 }}>
-                  We constantly strive to deliver high-performance IT solutions. Let us know about your project experience.
+                  {editTestimonial
+                    ? 'Update your rating, project details, and review message below.'
+                    : 'We constantly strive to deliver high-performance IT solutions. Let us know about your project experience.'}
                 </p>
               </div>
 
@@ -263,7 +273,9 @@ export default function RatingPage() {
                 onMouseEnter={e => { if(!loading) e.currentTarget.style.background = 'var(--accent-hover)'; }}
                 onMouseLeave={e => { if(!loading) e.currentTarget.style.background = 'var(--accent-color)'; }}
               >
-                {loading ? 'Submitting Feedback...' : 'Submit Rating & Feedback →'}
+                {loading
+                  ? (editTestimonial ? 'Updating Feedback...' : 'Submitting Feedback...')
+                  : (editTestimonial ? 'Update Rating & Feedback →' : 'Submit Rating & Feedback →')}
               </button>
             </form>
           )}

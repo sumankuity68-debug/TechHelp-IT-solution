@@ -3,28 +3,56 @@
 import nodemailer from 'nodemailer';
 
 const sendEmail = async (options) => {
+  try {
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      secure: false, 
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+      tls: {
+        rejectUnauthorized: false,
+      },
+    });
 
-  const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
-    secure: false, 
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-    },
-    tls: {
-      rejectUnauthorized: false,
-    },
-  });
+    const mailOptions = {
+      from: `${process.env.EMAIL_FROM_NAME} <${process.env.EMAIL_FROM}>`,
+      to: options.email,
+      subject: options.subject,
+      html: options.html,
+    };
 
-  const mailOptions = {
-    from: `${process.env.EMAIL_FROM_NAME} <${process.env.EMAIL_FROM}>`,
-    to: options.email,
-    subject: options.subject,
-    html: options.html,
-  };
+    await transporter.sendMail(mailOptions);
+  } catch (error) {
+    console.error('📧 [SMTP Mail Error] Failed to send email via SMTP:', error.message);
 
-  await transporter.sendMail(mailOptions);
+    if (process.env.NODE_ENV === 'development') {
+      console.log('\n==================================================');
+      console.log('🛠️  [DEVELOPMENT FALLBACK] EMAIL DETAILS');
+      console.log(`To:      ${options.email}`);
+      console.log(`Subject: ${options.subject}`);
+      
+      // Extract OTP or verification code if present in HTML
+      const otpMatch = options.html.match(/class="otp-code"[^>]*>([^<]+)</);
+      if (otpMatch) {
+        console.log(`🔑 CODE:  ${otpMatch[1].trim()}`);
+      } else {
+        const sixDigitMatch = options.html.match(/\b\d{6}\b/);
+        if (sixDigitMatch) {
+          console.log(`🔑 CODE:  ${sixDigitMatch[0]}`);
+        }
+      }
+      console.log('==================================================\n');
+      
+      // Resolve successfully so the request proceeds without breaking local testing
+      return;
+    }
+
+    // Rethrow error in production
+    throw error;
+  }
 };
 
 export default sendEmail;

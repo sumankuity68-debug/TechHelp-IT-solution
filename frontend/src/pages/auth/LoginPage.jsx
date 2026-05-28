@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 
 export default function LoginPage() {
   const [showResend, setShowResend] = useState(false);
@@ -13,6 +14,7 @@ export default function LoginPage() {
 
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { showSuccess, showError } = useToast();
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -65,13 +67,13 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (res.ok) {
-        alert('✅ Verification email sent! Please check your inbox.');
+        showSuccess('Verification email sent! Please check your inbox.');
         setShowResend(false);
       } else {
-        alert(data.message);
+        showError(data.message || 'Failed to resend verification email');
       }
     } catch (error) {
-      alert('Failed to resend verification email');
+      showError('Failed to resend verification email');
     }
   };
 

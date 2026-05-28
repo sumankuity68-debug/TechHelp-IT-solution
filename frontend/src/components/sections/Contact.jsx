@@ -2,7 +2,7 @@
 // Contact section with REAL API integration (Week 2)
 // Used in: pages/HomePage.jsx
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
@@ -12,6 +12,23 @@ export default function Contact() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [mapUrl, setMapUrl] = useState(
+    "https://maps.google.com/maps?q=Kolkata,West%20Bengal,India&t=&z=14&ie=UTF8&iwloc=&output=embed"
+  );
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setMapUrl(`https://maps.google.com/maps?q=${latitude},${longitude}&t=&z=15&ie=UTF8&iwloc=&output=embed`);
+        },
+        (err) => {
+          console.log("Geolocation error or permission denied, using default Kolkata location.", err);
+        }
+      );
+    }
+  }, []);
 
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
@@ -114,16 +131,23 @@ export default function Contact() {
               ))}
             </div>
 
-            {/* Map placeholder */}
+            {/* Map embed */}
             <div style={{
-              marginTop: 40, height: 160,
-              background: 'var(--bg-secondary)',
+              marginTop: 40, height: 220,
               border: '1px solid var(--border-color)',
               borderRadius: 4,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'var(--text-secondary)', fontSize: 13,
+              overflow: 'hidden',
             }}>
-              📍 Google Maps — embed in Week 3
+              <iframe
+                title="Office Location Map"
+                src={mapUrl}
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen=""
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
             </div>
           </div>
 

@@ -5,6 +5,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 
 function Stars({ count, compact = false }) {
   return (
@@ -18,6 +19,7 @@ function Stars({ count, compact = false }) {
 
 function TestimonialCard({ t, onActionComplete, compact = false }) {
   const { user, token } = useAuth();
+  const { showSuccess, showError } = useToast();
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [hovered, setHovered] = useState(false);
   const [showReplies, setShowReplies] = useState(false);
@@ -148,49 +150,89 @@ function TestimonialCard({ t, onActionComplete, compact = false }) {
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={handleMouseLeave}
     >
-      {/* Admin Delete button for entire card */}
-      {user?.role === 'admin' && (
-        <button 
-          onClick={async (e) => {
-            e.stopPropagation();
-            if (window.confirm('Are you sure you want to delete this rating?')) {
-              try {
-                const res = await fetch(`/api/testimonials/${t._id}`, {
-                  method: 'DELETE',
-                  headers: {
-                    Authorization: `Bearer ${token}`,
-                  },
-                });
-                if (res.ok) {
-                  onActionComplete();
-                } else {
-                  alert('Failed to delete testimonial');
-                }
-              } catch (err) {
-                console.error('Delete error:', err);
-              }
-            }
-          }}
-          style={{
-            position: 'absolute',
-            top: compact ? 12 : 18,
-            right: compact ? 12 : 18,
-            background: 'rgba(239, 68, 68, 0.1)',
-            border: '1px solid rgba(239, 68, 68, 0.2)',
-            color: '#ef4444',
-            borderRadius: 4,
-            padding: '4px 8px',
-            fontSize: 11,
-            fontWeight: 600,
-            cursor: 'pointer',
-            zIndex: 10,
-            transition: 'background 0.2s',
-          }}
-          onMouseEnter={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+      {/* Edit/Delete Actions Panel at Top Right */}
+      {(user?.role === 'admin' || (user && t.user && user.id === t.user._id)) && (
+        <div style={{
+          position: 'absolute',
+          top: compact ? 12 : 18,
+          right: compact ? 12 : 18,
+          display: 'flex',
+          gap: 6,
+          zIndex: 10,
+        }}
+        onClick={(e) => e.stopPropagation()} // Prevent card tilt focus/clicks
         >
-          🗑️ Delete
-        </button>
+          {/* Edit button: only for owner */}
+          {user && t.user && user.id === t.user._id && (
+            <Link
+              to="/rate"
+              state={{ editTestimonial: t }}
+              style={{
+                background: 'rgba(59, 130, 246, 0.1)',
+                border: '1px solid rgba(59, 130, 246, 0.2)',
+                color: '#3b82f6',
+                borderRadius: 4,
+                padding: '4px 8px',
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: 'pointer',
+                textDecoration: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                transition: 'background 0.2s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(59, 130, 246, 0.2)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(59, 130, 246, 0.1)'}
+            >
+              ✏️ Edit
+            </Link>
+          )}
+
+          {/* Delete button: for owner OR admin */}
+          {(user?.role === 'admin' || (user && t.user && user.id === t.user._id)) && (
+            <button 
+              onClick={async (e) => {
+                e.stopPropagation();
+                if (window.confirm('Are you sure you want to delete this rating?')) {
+                  try {
+                    const res = await fetch(`/api/testimonials/${t._id}`, {
+                      method: 'DELETE',
+                      headers: {
+                        Authorization: `Bearer ${token}`,
+                      },
+                    });
+                    if (res.ok) {
+                      showSuccess('Rating deleted successfully');
+                      onActionComplete();
+                    } else {
+                      const data = await res.json();
+                      showError(data.message || 'Failed to delete rating');
+                    }
+                  } catch (err) {
+                    console.error('Delete error:', err);
+                    showError('Failed to delete rating');
+                  }
+                }
+              }}
+              style={{
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.2)',
+                color: '#ef4444',
+                borderRadius: 4,
+                padding: '4px 8px',
+                fontSize: 11,
+                fontWeight: 600,
+                cursor: 'pointer',
+                transition: 'background 0.2s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+            >
+              🗑️ Delete
+            </button>
+          )}
+        </div>
       )}
 
       {/* Reflection effect */}
@@ -235,8 +277,14 @@ function TestimonialCard({ t, onActionComplete, compact = false }) {
               fontFamily: 'Fraunces, serif',
               fontSize: compact ? 14 : 16, fontWeight: 700, color: '#fff',
               flexShrink: 0,
+              overflow: 'hidden',
+              border: '1px solid var(--border-color)',
             }}>
-              {initial}
+              {t.user?.avatar ? (
+                <img src={t.user.avatar} alt={t.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                initial
+              )}
             </div>
             <div>
               <div style={{ fontWeight: 600, fontSize: compact ? 13 : 14, color: 'var(--text-primary)' }}>
@@ -374,40 +422,42 @@ function TestimonialCard({ t, onActionComplete, compact = false }) {
                           if (window.confirm('Are you sure you want to delete this reply?')) {
                             try {
                               const res = await fetch(`/api/testimonials/${t._id}/reply/${reply._id}`, {
-                                                              method: 'DELETE',
-                                  headers: {
-                                    Authorization: `Bearer ${token}`,
-                                  },
-                                });
-                                if (res.ok) {
-                                  onActionComplete();
-                                } else {
-                                  alert('Failed to delete reply');
-                                }
-                              } catch (err) {
-                                console.error('Delete reply error:', err);
+                                method: 'DELETE',
+                                headers: {
+                                  Authorization: `Bearer ${token}`,
+                                },
+                              });
+                              if (res.ok) {
+                                showSuccess('Reply deleted successfully');
+                                onActionComplete();
+                              } else {
+                                showError('Failed to delete reply');
                               }
+                            } catch (err) {
+                              console.error('Delete reply error:', err);
+                              showError('Failed to delete reply');
                             }
-                          }}
-                          style={{
-                            position: 'absolute',
-                            top: 8,
-                            right: 8,
-                            background: 'transparent',
-                            border: 'none',
-                            color: '#ef4444',
-                            fontSize: 11,
-                            cursor: 'pointer',
-                            opacity: 0.6,
-                            transition: 'opacity 0.2s',
-                          }}
-                          onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-                          onMouseLeave={e => e.currentTarget.style.opacity = '0.6'}
-                          title="Delete Reply"
-                        >
-                          🗑️
-                        </button>
-                      )}
+                          }
+                        }}
+                        style={{
+                          position: 'absolute',
+                          top: 8,
+                          right: 8,
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#ef4444',
+                          fontSize: 11,
+                          cursor: 'pointer',
+                          opacity: 0.6,
+                          transition: 'opacity 0.2s',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+                        onMouseLeave={e => e.currentTarget.style.opacity = '0.6'}
+                        title="Delete Reply"
+                      >
+                        🗑️
+                      </button>
+                    )}
                     </div>
                 ))
               ) : (
@@ -616,17 +666,32 @@ function TestimonialCard({ t, onActionComplete, compact = false }) {
 
         {/* Loading & Error States */}
         {loading && (
-          <div style={{ textAlign: 'center', padding: '4rem 0', color: 'var(--text-secondary)' }}>
-            <div style={{
-              width: 44,
-              height: 44,
-              border: '3px solid var(--border-color)',
-              borderTop: '3px solid var(--accent-color)',
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite',
-              margin: '0 auto 1.5rem',
-            }} />
-            <p style={{ fontSize: 15 }}>Fetching live reviews...</p>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: compactCards ? 'repeat(auto-fit, minmax(280px, 1fr))' : 'repeat(auto-fit, minmax(300px, 1fr))',
+            gap: compactCards ? 20 : 24,
+          }}>
+            {[1, 2, 3].map(i => (
+              <div key={i} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: 8, padding: compactCards ? '20px' : '36px 32px', height: '240px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ display: 'flex', gap: 3, marginBottom: compactCards ? 12 : 20 }}>
+                    {[1, 2, 3, 4, 5].map(star => (
+                      <span key={star} className="skeleton" style={{ width: '12px', height: '12px', borderRadius: '50%' }} />
+                    ))}
+                  </div>
+                  <div className="skeleton" style={{ width: '100%', height: '14px', marginBottom: '8px' }} />
+                  <div className="skeleton" style={{ width: '90%', height: '14px', marginBottom: '8px' }} />
+                  <div className="skeleton" style={{ width: '70%', height: '14px' }} />
+                </div>
+                <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+                  <div className="skeleton" style={{ width: compactCards ? '36px' : '42px', height: compactCards ? '36px' : '42px', borderRadius: '50%' }} />
+                  <div style={{ flex: 1 }}>
+                    <div className="skeleton" style={{ width: '100px', height: '12px', marginBottom: '6px' }} />
+                    <div className="skeleton" style={{ width: '150px', height: '10px' }} />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
 

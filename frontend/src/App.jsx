@@ -2,6 +2,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { ToastProvider } from './context/ToastContext';
 
 import Layout from './components/layout/Layout';
 
@@ -25,54 +26,63 @@ import ProtectedRoute from './components/ui/ProtectedRoute';
 function App() {
   return (
     <ThemeProvider>
-      <Router>
-        <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Layout><HomePage /></Layout>} />
-            <Route path="/about" element={<Layout><AboutPage /></Layout>} />
-            <Route path="/services" element={<Layout><ServicesPage /></Layout>} />
-            <Route path="/testimonials" element={<Layout><TestimonialsPage /></Layout>} />
-            <Route path="/contact" element={<Layout><ContactPage /></Layout>} />
-            <Route path="/rate" element={<Layout><RatingPage /></Layout>} />
+      <ToastProvider>
+        <Router>
+          <AuthProvider>
+            <Routes>
+              <Route path="/" element={<Layout><HomePage /></Layout>} />
+              <Route path="/about" element={<Layout><AboutPage /></Layout>} />
+              <Route path="/services" element={<Layout><ServicesPage /></Layout>} />
+              <Route path="/testimonials" element={<Layout><TestimonialsPage /></Layout>} />
+              <Route path="/contact" element={<Layout><ContactPage /></Layout>} />
+              <Route
+                path="/rate"
+                element={
+                  <ProtectedRoute>
+                    <Layout><RatingPage /></Layout>
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Auth pages (standalone - no Layout) */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
-            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-            <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-            <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
-            {/* Protected routes - User Dashboard */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Layout><UserDashboard /></Layout>
-                </ProtectedRoute>
-              }
-            />
+              {/* Auth pages (standalone - no Layout) */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/signup" element={<SignupPage />} />
+              <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+              <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+              <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
+              {/* Protected routes - User Dashboard */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Layout><UserDashboard /></Layout>
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Protected routes - Profile */}
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <Layout><ProfilePage /></Layout>
-                </ProtectedRoute>
-              }
-            />
+              {/* Protected routes - Profile */}
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Layout><ProfilePage /></Layout>
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Admin routes */}
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute requireAdmin={true}>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </AuthProvider>
-      </Router>
+              {/* Admin routes */}
+              <Route
+                path="/admin"
+                element={
+                  <ProtectedRoute requireAdmin={true}>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </AuthProvider>
+        </Router>
+      </ToastProvider>
     </ThemeProvider>
   );
 }

@@ -3,23 +3,45 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
+import { useToast } from '../../context/ToastContext';
 
 export default function AdminDashboard() {
   const { user, logout, token } = useAuth();
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
+  const { showSuccess, showError } = useToast();
   
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalContacts: 0,
-    totalServices: 4,
+    totalServices: 0,
     pendingInquiries: 0,
   });
   const [users, setUsers] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Service modal states
+  const [showServiceModal, setShowServiceModal] = useState(false);
+  const [editingService, setEditingService] = useState(null);
+  const [serviceForm, setServiceForm] = useState({
+    num: '',
+    title: '',
+    description: '',
+    tags: '',
+    isActive: true,
+  });
+
+  // User modal states
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [userForm, setUserForm] = useState({
+    name: '',
+    email: '',
+    role: 'user',
+  });
   useEffect(() => {
     fetchDashboardData();
   }, []);
@@ -33,8 +55,13 @@ export default function AdminDashboard() {
       });
       const contactData = await contactRes.json();
 
-      const servicesRes = await fetch('http://localhost:5000/api/services');
+      const servicesRes = await fetch('http://localhost:5000/api/services?all=true');
       const servicesData = await servicesRes.json();
+
+      const usersRes = await fetch('http://localhost:5000/api/users', {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const usersData = await usersRes.json();
 
       if (contactData.success) {
         setContacts(contactData.data);
@@ -48,6 +75,11 @@ export default function AdminDashboard() {
       if (servicesData.success) {
         setServices(servicesData.data);
         setStats(prev => ({ ...prev, totalServices: servicesData.count }));
+      }
+
+      if (usersData.success) {
+        setUsers(usersData.data);
+        setStats(prev => ({ ...prev, totalUsers: usersData.count }));
       }
 
     } catch (error) {
@@ -74,11 +106,11 @@ export default function AdminDashboard() {
       if (res.ok) {
         setContacts(contacts.filter(c => c._id !== id));
         setStats(prev => ({ ...prev, totalContacts: prev.totalContacts - 1 }));
-        alert('Inquiry deleted successfully');
+        showSuccess('Inquiry deleted successfully');
       }
     } catch (error) {
       console.error('Error deleting contact:', error);
-      alert('Failed to delete inquiry');
+      showError('Failed to delete inquiry');
     }
   };
 
@@ -97,22 +129,316 @@ export default function AdminDashboard() {
         setContacts(contacts.map(c => 
           c._id === id ? { ...c, status: newStatus } : c
         ));
-        alert('Status updated successfully');
+        showSuccess('Status updated successfully');
       }
     } catch (error) {
       console.error('Error updating status:', error);
-      alert('Failed to update status');
+      showError('Failed to update status');
+    }
+  };
+
+  const handleDeleteUser = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this user?')) return;
+    
+    try {
+      const res = await fetch(`http://localhost:5000/api/users/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setUsers(users.filter(u => u._id !== id));
+        setStats(prev => ({ ...prev, totalUsers: Math.max(0, prev.totalUsers - 1) }));
+        showSuccess('User deleted successfully');
+      } else {
+        showError(data.message || 'Failed to delete user');
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      showError('Failed to delete user');
+    }
+  };
+
+  const handleUpdateUserRole = async (id, newRole) => {
+    try {
+      const res = await fetch(`http://localhost:5000/api/users/${id}/role`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ role: newRole }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setUsers(users.map(u => 
+          u._id === id ? { ...u, role: newRole } : u
+        ));
+        showSuccess('User role updated successfully');
+      } else {
+        showError(data.message || 'Failed to update user role');
+      }
+    } catch (error) {
+      console.error('Error updating user role:', error);
+      showError('Failed to update user role');
+    }
+  };
+
+  const handleOpenEditUser = (u) => {
+    setEditingUser(u);
+    setUserForm({
+      name: u.name || '',
+      email: u.email || '',
+      role: u.role || 'user',
+    });
+    setShowUserModal(true);
+  };
+
+  const handleSaveUser = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`http://localhost:5000/api/users/${editingUser._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(userForm),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setUsers(users.map(u => u._id === editingUser._id ? data.data : u));
+        showSuccess('User updated successfully');
+        setShowUserModal(false);
+      } else {
+        showError(data.message || 'Failed to save user');
+      }
+    } catch (error) {
+      console.error('Error saving user:', error);
+      showError('Failed to save user');
+    }
+  };
+
+  const renderSkeleton = () => {
+    if (activeTab === 'overview') {
+      return (
+        <div>
+          {/* Stats Grid Skeleton */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} style={{ background: 'var(--dash-btn-bg)', border: 'var(--dash-btn-border)', borderRadius: 12, padding: '1.5rem' }}>
+                <div className="skeleton" style={{ width: '60%', height: '14px', marginBottom: '12px' }} />
+                <div className="skeleton" style={{ width: '40%', height: '36px' }} />
+              </div>
+            ))}
+          </div>
+          {/* Recent Inquiries Skeleton */}
+          <div style={{ background: 'var(--dash-list-item-bg)', border: 'var(--dash-card-border)', borderRadius: 12, padding: '1.5rem' }}>
+            <div className="skeleton" style={{ width: '150px', height: '20px', marginBottom: '1.5rem' }} />
+            {[1, 2, 3].map(i => (
+              <div key={i} style={{ background: 'var(--dash-card-bg)', border: 'var(--dash-card-border)', padding: '16px', borderRadius: 8, marginBottom: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <div className="skeleton" style={{ width: '100px', height: '16px' }} />
+                  <div className="skeleton" style={{ width: '60px', height: '12px' }} />
+                </div>
+                <div className="skeleton" style={{ width: '220px', height: '14px' }} />
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    if (activeTab === 'inquiries') {
+      return (
+        <div>
+          <div className="skeleton" style={{ width: '200px', height: '24px', marginBottom: '1.5rem' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {[1, 2, 3].map(i => (
+              <div key={i} style={{ background: 'var(--dash-card-bg)', border: 'var(--dash-card-border)', borderRadius: 12, padding: '1.5rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <div>
+                    <div className="skeleton" style={{ width: '120px', height: '18px', marginBottom: '6px' }} />
+                    <div className="skeleton" style={{ width: '150px', height: '13px' }} />
+                  </div>
+                  <div>
+                    <div className="skeleton" style={{ width: '80px', height: '28px', borderRadius: '6px' }} />
+                  </div>
+                </div>
+                <div style={{ background: 'var(--dash-list-item-bg)', padding: '12px', borderRadius: 8, marginBottom: '12px' }}>
+                  <div className="skeleton" style={{ width: '90%', height: '14px', marginBottom: '8px' }} />
+                  <div className="skeleton" style={{ width: '75%', height: '14px' }} />
+                </div>
+                <div className="skeleton" style={{ width: '80px', height: '32px', borderRadius: '6px' }} />
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    if (activeTab === 'services') {
+      return (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <div className="skeleton" style={{ width: '250px', height: '24px' }} />
+            <div className="skeleton" style={{ width: '130px', height: '38px', borderRadius: '10px' }} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
+            {[1, 2, 3].map(i => (
+              <div key={i} style={{ background: 'var(--dash-card-bg)', border: 'var(--dash-card-border)', borderRadius: 12, padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '260px' }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <div className="skeleton" style={{ width: '30px', height: '12px' }} />
+                    <div className="skeleton" style={{ width: '50px', height: '16px', borderRadius: '4px' }} />
+                  </div>
+                  <div className="skeleton" style={{ width: '70%', height: '20px', marginBottom: '12px' }} />
+                  <div className="skeleton" style={{ width: '100%', height: '14px', marginBottom: '8px' }} />
+                  <div className="skeleton" style={{ width: '90%', height: '14px', marginBottom: '16px' }} />
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <div className="skeleton" style={{ width: '50px', height: '20px', borderRadius: '6px' }} />
+                    <div className="skeleton" style={{ width: '60px', height: '20px', borderRadius: '6px' }} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', borderTop: 'var(--dash-card-border)', paddingTop: '12px', marginTop: '16px' }}>
+                  <div className="skeleton" style={{ flex: 1, height: '32px', borderRadius: '6px' }} />
+                  <div className="skeleton" style={{ flex: 1, height: '32px', borderRadius: '6px' }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    if (activeTab === 'users') {
+      return (
+        <div>
+          <div className="skeleton" style={{ width: '200px', height: '24px', marginBottom: '1.5rem' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {[1, 2, 3].map(i => (
+              <div key={i} style={{ background: 'var(--dash-card-bg)', border: 'var(--dash-card-border)', borderRadius: 12, padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: 1 }}>
+                  <div className="skeleton" style={{ width: '48px', height: '48px', borderRadius: '50%' }} />
+                  <div style={{ flex: 1 }}>
+                    <div className="skeleton" style={{ width: '120px', height: '16px', marginBottom: '8px' }} />
+                    <div className="skeleton" style={{ width: '180px', height: '13px' }} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+                  <div className="skeleton" style={{ width: '100px', height: '28px', borderRadius: '6px' }} />
+                  <div className="skeleton" style={{ width: '80px', height: '32px', borderRadius: '6px' }} />
+                  <div className="skeleton" style={{ width: '80px', height: '32px', borderRadius: '6px' }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+  };
+
+  const handleDeleteService = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this service?')) return;
+    try {
+      const res = await fetch(`http://localhost:5000/api/services/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setServices(services.filter(s => s._id !== id));
+        setStats(prev => ({ ...prev, totalServices: Math.max(0, prev.totalServices - 1) }));
+        showSuccess('Service deleted successfully');
+      } else {
+        showError(data.message || 'Failed to delete service');
+      }
+    } catch (error) {
+      console.error('Error deleting service:', error);
+      showError('Failed to delete service');
+    }
+  };
+
+  const handleOpenAddService = () => {
+    setEditingService(null);
+    setServiceForm({
+      num: '',
+      title: '',
+      description: '',
+      tags: '',
+      isActive: true,
+    });
+    setShowServiceModal(true);
+  };
+
+  const handleOpenEditService = (service) => {
+    setEditingService(service);
+    setServiceForm({
+      num: service.num || '',
+      title: service.title || '',
+      description: service.description || '',
+      tags: service.tags ? service.tags.join(', ') : '',
+      isActive: service.isActive !== undefined ? service.isActive : true,
+    });
+    setShowServiceModal(true);
+  };
+
+  const handleSaveService = async (e) => {
+    e.preventDefault();
+    const payload = {
+      num: serviceForm.num,
+      title: serviceForm.title,
+      description: serviceForm.description,
+      tags: serviceForm.tags ? serviceForm.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+      isActive: serviceForm.isActive,
+    };
+
+    const url = editingService 
+      ? `http://localhost:5000/api/services/${editingService._id}` 
+      : 'http://localhost:5000/api/services';
+    const method = editingService ? 'PUT' : 'POST';
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (editingService) {
+          setServices(services.map(s => s._id === editingService._id ? data.data : s));
+          showSuccess('Service updated successfully');
+        } else {
+          setServices([...services, data.data].sort((a, b) => (a.num || '').localeCompare(b.num || '')));
+          setStats(prev => ({ ...prev, totalServices: prev.totalServices + 1 }));
+          showSuccess('Service created successfully');
+        }
+        setShowServiceModal(false);
+      } else {
+        showError(data.message || 'Failed to save service');
+      }
+    } catch (error) {
+      console.error('Error saving service:', error);
+      showError('Failed to save service');
     }
   };
 
   return (
-    <div style={{
+    <div className="dash-container" style={{
       minHeight: '100vh',
       background: 'var(--dash-bg)',
       padding: '2rem',
       transition: 'background 0.3s ease, color 0.3s ease',
     }}>
-      <div style={{
+      <div className="dash-header" style={{
         background: 'var(--dash-card-bg)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
@@ -140,7 +466,7 @@ export default function AdminDashboard() {
             Welcome back, {user?.name}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <div className="dash-header-actions" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           {/* Go to Home button */}
           <button
             onClick={() => navigate('/')}
@@ -209,7 +535,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      <div style={{
+      <div className="dash-tabs-container" style={{
         background: 'var(--dash-card-bg)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
@@ -230,6 +556,7 @@ export default function AdminDashboard() {
         ].map(tab => (
           <button
             key={tab.id}
+            className="dash-tab-btn"
             onClick={() => setActiveTab(tab.id)}
             style={{
               flex: 1,
@@ -269,18 +596,7 @@ export default function AdminDashboard() {
         transition: 'all 0.3s ease',
       }}>
         {loading ? (
-          <div style={{ textAlign: 'center', color: 'var(--dash-text-primary)', padding: '4rem' }}>
-            <div style={{
-              width: 50,
-              height: 50,
-              border: '4px solid var(--border-color)',
-              borderTop: '4px solid var(--accent-color)',
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite',
-              margin: '0 auto 1rem',
-            }} />
-            <p>Loading dashboard data...</p>
-          </div>
+          renderSkeleton()
         ) : (
           <>
             {activeTab === 'overview' && (
@@ -462,13 +778,34 @@ export default function AdminDashboard() {
 
             {activeTab === 'services' && (
               <div>
-                <h2 style={{ color: 'var(--dash-text-primary)', fontSize: 22, marginBottom: '1.5rem', transition: 'color 0.3s ease' }}>
-                  Services Management
-                </h2>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                  <h2 style={{ color: 'var(--dash-text-primary)', fontSize: 22, margin: 0, transition: 'color 0.3s ease' }}>
+                    Services Management ({services.length})
+                  </h2>
+                  <button
+                    onClick={handleOpenAddService}
+                    style={{
+                      background: 'var(--dash-btn-pro-bg)',
+                      color: 'var(--dash-btn-pro-text)',
+                      border: 'none',
+                      padding: '10px 18px',
+                      borderRadius: 10,
+                      fontSize: 14,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    ➕ Add Service
+                  </button>
+                </div>
 
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
                   gap: '1rem',
                 }}>
                   {services.map(service => (
@@ -479,57 +816,101 @@ export default function AdminDashboard() {
                         border: 'var(--dash-card-border)',
                         borderRadius: 12,
                         padding: '1.5rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
                         transition: 'all 0.3s ease',
                       }}
                     >
-                      <div style={{
-                        fontSize: 11,
-                        color: 'var(--dash-text-muted)',
-                        marginBottom: '8px',
-                        fontWeight: 600,
-                        transition: 'color 0.3s ease',
-                      }}>
-                        {service.num}
-                      </div>
-                      <h3 style={{ color: 'var(--dash-text-primary)', fontSize: 18, margin: '0 0 8px 0', transition: 'color 0.3s ease' }}>
-                        {service.title}
-                      </h3>
-                      <p style={{ color: 'var(--dash-text-secondary)', fontSize: 13, marginBottom: '12px', transition: 'color 0.3s ease' }}>
-                        {service.description.substring(0, 100)}...
-                      </p>
-                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                        {service.tags.map(tag => (
-                          <span
-                            key={tag}
-                            style={{
-                              background: 'var(--dash-avatar-bg)',
-                              padding: '4px 10px',
-                              borderRadius: 6,
-                              fontSize: 11,
-                              color: 'var(--dash-text-primary)',
-                              transition: 'all 0.3s ease',
-                            }}
-                          >
-                            {tag}
+                      <div>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          marginBottom: '8px',
+                        }}>
+                          <span style={{
+                            fontSize: 11,
+                            color: 'var(--dash-text-muted)',
+                            fontWeight: 600,
+                            transition: 'color 0.3s ease',
+                          }}>
+                            {service.num}
                           </span>
-                        ))}
+                          <span style={{
+                            fontSize: 10,
+                            padding: '3px 8px',
+                            borderRadius: '4px',
+                            background: service.isActive ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                            color: service.isActive ? '#10b981' : '#ef4444',
+                            fontWeight: 600,
+                          }}>
+                            {service.isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                        <h3 style={{ color: 'var(--dash-text-primary)', fontSize: 18, margin: '0 0 8px 0', transition: 'color 0.3s ease' }}>
+                          {service.title}
+                        </h3>
+                        <p style={{ color: 'var(--dash-text-secondary)', fontSize: 13, marginBottom: '12px', transition: 'color 0.3s ease' }}>
+                          {service.description}
+                        </p>
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+                          {service.tags && service.tags.map(tag => (
+                            <span
+                              key={tag}
+                              style={{
+                                background: 'var(--dash-avatar-bg)',
+                                padding: '4px 10px',
+                                borderRadius: 6,
+                                fontSize: 11,
+                                color: 'var(--dash-text-primary)',
+                                transition: 'all 0.3s ease',
+                              }}
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '8px', borderTop: 'var(--dash-card-border)', paddingTop: '12px' }}>
+                        <button
+                          onClick={() => handleOpenEditService(service)}
+                          style={{
+                            flex: 1,
+                            background: 'var(--dash-btn-bg)',
+                            border: 'var(--dash-btn-border)',
+                            color: 'var(--dash-btn-text)',
+                            padding: '8px 12px',
+                            borderRadius: 6,
+                            fontSize: 13,
+                            fontWeight: 500,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                          }}
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteService(service._id)}
+                          style={{
+                            flex: 1,
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                            color: '#ef4444',
+                            padding: '8px 12px',
+                            borderRadius: 6,
+                            fontSize: 13,
+                            fontWeight: 500,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                          }}
+                        >
+                          🗑️ Delete
+                        </button>
                       </div>
                     </div>
                   ))}
-                </div>
-
-                <div style={{
-                  marginTop: '2rem',
-                  textAlign: 'center',
-                  padding: '2rem',
-                  background: 'var(--dash-list-item-bg)',
-                  borderRadius: 12,
-                  border: '2px dashed var(--dash-card-border)',
-                  transition: 'all 0.3s ease',
-                }}>
-                  <p style={{ color: 'var(--dash-text-secondary)', fontSize: 14, transition: 'color 0.3s ease' }}>
-                    Service creation and editing coming in Week 3
-                  </p>
                 </div>
               </div>
             )}
@@ -537,25 +918,160 @@ export default function AdminDashboard() {
             {activeTab === 'users' && (
               <div>
                 <h2 style={{ color: 'var(--dash-text-primary)', fontSize: 22, marginBottom: '1.5rem', transition: 'color 0.3s ease' }}>
-                  User Management
+                  User Management ({users.length})
                 </h2>
 
-                <div style={{
-                  textAlign: 'center',
-                  padding: '3rem',
-                  background: 'var(--dash-list-item-bg)',
-                  borderRadius: 12,
-                  border: '2px dashed var(--dash-card-border)',
-                  transition: 'all 0.3s ease',
-                }}>
-                  <p style={{ fontSize: 48, margin: '0 0 1rem 0' }}>👥</p>
-                  <p style={{ color: 'var(--dash-text-primary)', fontSize: 18, marginBottom: '8px', transition: 'color 0.3s ease' }}>
-                    User Management
-                  </p>
-                  <p style={{ color: 'var(--dash-text-secondary)', fontSize: 14, transition: 'color 0.3s ease' }}>
-                    User listing and management features coming in Week 3
-                  </p>
-                </div>
+                {users.length === 0 ? (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '3rem',
+                    background: 'var(--dash-list-item-bg)',
+                    borderRadius: 12,
+                    border: '2px dashed var(--dash-card-border)',
+                    transition: 'all 0.3s ease',
+                  }}>
+                    <p style={{ fontSize: 48, margin: '0 0 1rem 0' }}>👥</p>
+                    <p style={{ color: 'var(--dash-text-primary)', fontSize: 18, marginBottom: '8px', transition: 'color 0.3s ease' }}>
+                      No users found
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {users.map(u => (
+                      <div
+                        key={u._id}
+                        className="dash-user-row"
+                        style={{
+                          background: 'var(--dash-card-bg)',
+                          border: 'var(--dash-card-border)',
+                          borderRadius: 12,
+                          padding: '1.25rem 1.5rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '1.5rem',
+                          flexWrap: 'wrap',
+                          transition: 'all 0.3s ease',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', minWidth: '240px' }}>
+                          <div style={{
+                            width: '48px',
+                            height: '48px',
+                            borderRadius: '50%',
+                            background: 'var(--dash-avatar-bg)',
+                            color: 'var(--dash-text-primary)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '16px',
+                            fontWeight: '700',
+                            border: 'var(--dash-card-border)',
+                          }}>
+                            {u.name ? u.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'U'}
+                          </div>
+                          <div>
+                            <h3 style={{ color: 'var(--dash-text-primary)', fontSize: 16, margin: '0 0 4px 0', fontWeight: '600' }}>
+                              {u.name} {u._id === user?.id && <span style={{ fontSize: '10px', background: 'rgba(79, 70, 229, 0.2)', color: 'var(--dash-btn-text)', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px' }}>You</span>}
+                            </h3>
+                            <p style={{ color: 'var(--dash-text-secondary)', fontSize: 13, margin: 0 }}>
+                              {u.email}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="dash-user-actions" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+                          <div style={{ minWidth: '120px' }}>
+                            <p style={{ fontSize: 11, color: 'var(--dash-text-muted)', margin: '0 0 4px 0' }}>Joined On</p>
+                            <p style={{ color: 'var(--dash-text-primary)', fontSize: 13, margin: 0 }}>
+                              {new Date(u.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                            </p>
+                          </div>
+
+                          <div>
+                            <p style={{ fontSize: 11, color: 'var(--dash-text-muted)', margin: '0 0 4px 0' }}>Role</p>
+                            <select
+                              value={u.role}
+                              disabled={u._id === user?.id}
+                              onChange={(e) => handleUpdateUserRole(u._id, e.target.value)}
+                              style={{
+                                background: 'var(--bg-secondary)',
+                                border: '1px solid var(--border-color)',
+                                color: 'var(--text-primary)',
+                                padding: '6px 12px',
+                                borderRadius: 6,
+                                fontSize: 13,
+                                cursor: u._id === user?.id ? 'not-allowed' : 'pointer',
+                                outline: 'none',
+                                opacity: u._id === user?.id ? 0.7 : 1,
+                              }}
+                            >
+                              <option value="user" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>User</option>
+                              <option value="admin" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Admin</option>
+                            </select>
+                          </div>
+
+                          <button
+                            onClick={() => handleOpenEditUser(u)}
+                            disabled={u._id === user?.id}
+                            style={{
+                              background: u._id === user?.id ? 'rgba(79, 70, 229, 0.05)' : 'var(--dash-btn-bg)',
+                              border: 'var(--dash-btn-border)',
+                              color: 'var(--dash-btn-text)',
+                              padding: '8px 16px',
+                              borderRadius: 6,
+                              fontSize: 13,
+                              cursor: u._id === user?.id ? 'not-allowed' : 'pointer',
+                              opacity: u._id === user?.id ? 0.5 : 1,
+                              transition: 'all 0.2s',
+                              marginRight: '8px'
+                            }}
+                            onMouseOver={e => {
+                              if (u._id !== user?.id) {
+                                e.currentTarget.style.background = 'var(--dash-btn-hover-bg)';
+                              }
+                            }}
+                            onMouseOut={e => {
+                              if (u._id !== user?.id) {
+                                e.currentTarget.style.background = 'var(--dash-btn-bg)';
+                              }
+                            }}
+                          >
+                            ✏️ Edit
+                          </button>
+
+                          <button
+                            onClick={() => handleDeleteUser(u._id)}
+                            disabled={u._id === user?.id}
+                            style={{
+                              background: u._id === user?.id ? 'rgba(239, 68, 68, 0.05)' : 'rgba(239, 68, 68, 0.1)',
+                              border: '1px solid rgba(239, 68, 68, 0.3)',
+                              color: '#ef4444',
+                              padding: '8px 16px',
+                              borderRadius: 6,
+                              fontSize: 13,
+                              cursor: u._id === user?.id ? 'not-allowed' : 'pointer',
+                              opacity: u._id === user?.id ? 0.5 : 1,
+                              transition: 'all 0.2s',
+                            }}
+                            onMouseOver={e => {
+                              if (u._id !== user?.id) {
+                                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
+                              }
+                            }}
+                            onMouseOut={e => {
+                              if (u._id !== user?.id) {
+                                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                              }
+                            }}
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </>
@@ -566,7 +1082,372 @@ export default function AdminDashboard() {
         @keyframes spin {
           to { transform: rotate(360deg); }
         }
+        @keyframes modalIn {
+          from { opacity: 0; transform: scale(0.95) translateY(10px); }
+          to   { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        
+        /* Mobile and split-screen responsive dashboard adjustments */
+        @media (max-width: 768px) {
+          .dash-container {
+            padding: 1rem !important;
+          }
+          .dash-header {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 1rem !important;
+            text-align: center !important;
+            padding: 1.25rem 1rem !important;
+          }
+          .dash-header-actions {
+            justify-content: center !important;
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+          }
+          .dash-header-actions button {
+            flex: 1 !important;
+            min-width: 100px !important;
+            justify-content: center !important;
+            padding: 8px 12px !important;
+            font-size: 13px !important;
+          }
+          .dash-tabs-container {
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+            padding: 8px !important;
+          }
+          .dash-tab-btn {
+            flex: unset !important;
+            width: calc(50% - 4px) !important;
+            padding: 8px !important;
+            font-size: 13px !important;
+          }
+          .dash-user-row {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 1rem !important;
+            padding: 1rem !important;
+          }
+          .dash-user-actions {
+            width: 100% !important;
+            justify-content: space-between !important;
+            gap: 12px !important;
+          }
+        }
+        
+        @media (max-width: 480px) {
+          .dash-tab-btn {
+            width: 100% !important;
+          }
+          .dash-user-actions {
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 8px !important;
+          }
+          .dash-user-actions div, 
+          .dash-user-actions select, 
+          .dash-user-actions button {
+            width: 100% !important;
+            min-width: unset !important;
+          }
+          .dash-user-actions select {
+            padding: 8px !important;
+          }
+        }
       `}</style>
+
+      {/* Services Modal */}
+      {showServiceModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.6)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1.5rem',
+        }} onClick={() => setShowServiceModal(false)}>
+          <div style={{
+            background: 'var(--dash-card-bg)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            border: 'var(--dash-card-border)',
+            borderRadius: 16,
+            padding: '2rem',
+            width: '100%',
+            maxWidth: 500,
+            boxShadow: 'var(--dash-card-shadow)',
+            transition: 'all 0.3s ease',
+            animation: 'modalIn 0.2s ease',
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ fontSize: 20, fontWeight: 700, color: 'var(--dash-text-primary)', margin: 0 }}>
+                {editingService ? '✏️ Edit Service' : '✨ Add New Service'}
+              </h3>
+              <button onClick={() => setShowServiceModal(false)} style={{
+                background: 'none', border: 'none', color: 'var(--dash-text-secondary)', fontSize: 20, cursor: 'pointer', outline: 'none'
+              }}>×</button>
+            </div>
+
+            <form onSubmit={handleSaveService} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, color: 'var(--dash-text-muted)', marginBottom: 6, fontWeight: 600 }}>Num</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="05"
+                    value={serviceForm.num}
+                    onChange={e => setServiceForm(prev => ({ ...prev, num: e.target.value }))}
+                    style={{
+                      width: '100%', padding: '10px 12px',
+                      background: 'var(--dash-list-item-bg)',
+                      border: 'var(--dash-card-border)',
+                      borderRadius: 8, color: 'var(--dash-text-primary)',
+                      fontSize: 14, outline: 'none',
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, color: 'var(--dash-text-muted)', marginBottom: 6, fontWeight: 600 }}>Title</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Service Title"
+                    value={serviceForm.title}
+                    onChange={e => setServiceForm(prev => ({ ...prev, title: e.target.value }))}
+                    style={{
+                      width: '100%', padding: '10px 12px',
+                      background: 'var(--dash-list-item-bg)',
+                      border: 'var(--dash-card-border)',
+                      borderRadius: 8, color: 'var(--dash-text-primary)',
+                      fontSize: 14, outline: 'none',
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, color: 'var(--dash-text-muted)', marginBottom: 6, fontWeight: 600 }}>Description</label>
+                <textarea
+                  required
+                  rows={4}
+                  placeholder="Detailed description of the service..."
+                  value={serviceForm.description}
+                  onChange={e => setServiceForm(prev => ({ ...prev, description: e.target.value }))}
+                  style={{
+                    width: '100%', padding: '10px 12px',
+                    background: 'var(--dash-list-item-bg)',
+                    border: 'var(--dash-card-border)',
+                    borderRadius: 8, color: 'var(--dash-text-primary)',
+                    fontSize: 14, outline: 'none', resize: 'vertical',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, color: 'var(--dash-text-muted)', marginBottom: 6, fontWeight: 600 }}>Tags (comma-separated)</label>
+                <input
+                  type="text"
+                  placeholder="React, Node.js, AWS"
+                  value={serviceForm.tags}
+                  onChange={e => setServiceForm(prev => ({ ...prev, tags: e.target.value }))}
+                  style={{
+                    width: '100%', padding: '10px 12px',
+                    background: 'var(--dash-list-item-bg)',
+                    border: 'var(--dash-card-border)',
+                    borderRadius: 8, color: 'var(--dash-text-primary)',
+                    fontSize: 14, outline: 'none',
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="checkbox"
+                  id="isActive"
+                  checked={serviceForm.isActive}
+                  onChange={e => setServiceForm(prev => ({ ...prev, isActive: e.target.checked }))}
+                  style={{ cursor: 'pointer', width: 16, height: 16 }}
+                />
+                <label htmlFor="isActive" style={{ fontSize: 14, color: 'var(--dash-text-primary)', cursor: 'pointer', userSelect: 'none' }}>
+                  Service is Active (visible on homepage)
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowServiceModal(false)}
+                  style={{
+                    flex: 1,
+                    background: 'var(--dash-btn-bg)',
+                    border: 'var(--dash-btn-border)',
+                    color: 'var(--dash-text-secondary)',
+                    padding: '12px',
+                    borderRadius: 10,
+                    fontSize: 14,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    flex: 1,
+                    background: 'var(--dash-btn-pro-bg)',
+                    border: 'none',
+                    color: 'var(--dash-btn-pro-text)',
+                    padding: '12px',
+                    borderRadius: 10,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Save Service
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Users Modal */}
+      {showUserModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.6)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1.5rem',
+        }} onClick={() => setShowUserModal(false)}>
+          <div style={{
+            background: 'var(--dash-card-bg)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            border: 'var(--dash-card-border)',
+            borderRadius: 16,
+            padding: '2rem',
+            width: '100%',
+            maxWidth: 450,
+            boxShadow: 'var(--dash-card-shadow)',
+            transition: 'all 0.3s ease',
+            animation: 'modalIn 0.2s ease',
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ fontSize: 20, fontWeight: 700, color: 'var(--dash-text-primary)', margin: 0 }}>
+                ✏️ Edit User Details
+              </h3>
+              <button onClick={() => setShowUserModal(false)} style={{
+                background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 20, cursor: 'pointer', outline: 'none'
+              }}>×</button>
+            </div>
+
+            <form onSubmit={handleSaveUser} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, color: 'var(--dash-text-muted)', marginBottom: 6, fontWeight: 600 }}>Full Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="John Doe"
+                  value={userForm.name}
+                  onChange={e => setUserForm(prev => ({ ...prev, name: e.target.value }))}
+                  style={{
+                    width: '100%', padding: '10px 12px',
+                    background: 'var(--dash-list-item-bg)',
+                    border: 'var(--dash-card-border)',
+                    borderRadius: 8, color: 'var(--dash-text-primary)',
+                    fontSize: 14, outline: 'none',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, color: 'var(--dash-text-muted)', marginBottom: 6, fontWeight: 600 }}>Email Address</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="john@example.com"
+                  value={userForm.email}
+                  onChange={e => setUserForm(prev => ({ ...prev, email: e.target.value }))}
+                  style={{
+                    width: '100%', padding: '10px 12px',
+                    background: 'var(--dash-list-item-bg)',
+                    border: 'var(--dash-card-border)',
+                    borderRadius: 8, color: 'var(--dash-text-primary)',
+                    fontSize: 14, outline: 'none',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, color: 'var(--dash-text-muted)', marginBottom: 6, fontWeight: 600 }}>User Role</label>
+                <select
+                  value={userForm.role}
+                  onChange={e => setUserForm(prev => ({ ...prev, role: e.target.value }))}
+                  style={{
+                    width: '100%', padding: '10px 12px',
+                    background: 'var(--dash-list-item-bg)',
+                    border: 'var(--dash-card-border)',
+                    borderRadius: 8, color: 'var(--dash-text-primary)',
+                    fontSize: 14, outline: 'none', cursor: 'pointer',
+                  }}
+                >
+                  <option value="user" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>User</option>
+                  <option value="admin" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Admin</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowUserModal(false)}
+                  style={{
+                    flex: 1,
+                    background: 'var(--dash-btn-bg)',
+                    border: 'var(--dash-btn-border)',
+                    color: 'var(--dash-text-secondary)',
+                    padding: '12px',
+                    borderRadius: 10,
+                    fontSize: 14,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    flex: 1,
+                    background: 'var(--dash-btn-pro-bg)',
+                    border: 'none',
+                    color: 'var(--dash-btn-pro-text)',
+                    padding: '12px',
+                    borderRadius: 10,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

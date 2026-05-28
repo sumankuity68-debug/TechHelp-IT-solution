@@ -49,7 +49,9 @@ export const getTestimonials = async (req, res) => {
     if (count === 0) {
       await seedDefaultTestimonials();
     }
-    const testimonials = await Testimonial.find().sort({ createdAt: -1 });
+    const testimonials = await Testimonial.find()
+      .populate('user', 'name email avatar role')
+      .sort({ createdAt: -1 });
     res.status(200).json({
       success: true,
       count: testimonials.length,
@@ -63,7 +65,7 @@ export const getTestimonials = async (req, res) => {
 
 // @desc    Submit a new rating / testimonial
 // @route   POST /api/testimonials
-// @access  Public
+// @access  Private
 export const createTestimonial = async (req, res) => {
   try {
     const { name, role, project, rating, text } = req.body;
@@ -76,6 +78,7 @@ export const createTestimonial = async (req, res) => {
     }
 
     const testimonial = await Testimonial.create({
+      user: req.user._id,
       name,
       role: role || 'Client',
       project: project || 'General Consultation',
@@ -221,16 +224,68 @@ export const voteTestimonial = async (req, res) => {
   }
 };
 
-// @desc    Delete a testimonial
-// @route   DELETE /api/testimonials/:id
-// @access  Private/Admin
-export const deleteTestimonial = async (req, res) => {
+// @desc    Update a testimonial
+// @route   PUT /api/testimonials/:id
+// @access  Private
+export const updateTestimonial = async (req, res) => {
   try {
-    const testimonial = await Testimonial.findByIdAndDelete(req.params.id);
+    const { name, role, project, rating, text } = req.body;
+    const testimonial = await Testimonial.findById(req.params.id);
 
     if (!testimonial) {
       return res.status(404).json({ success: false, message: 'Testimonial not found' });
     }
+
+    // Check if user is the owner
+    if (!testimonial.user || testimonial.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to edit this testimonial',
+      });
+    }
+
+    // Update testimonial fields
+    testimonial.name = name || testimonial.name;
+    testimonial.role = role || testimonial.role;
+    testimonial.project = project || testimonial.project;
+    testimonial.rating = rating || testimonial.rating;
+    testimonial.text = text || testimonial.text;
+
+    await testimonial.save();
+
+    res.status(200).json({
+      success: true,
+      data: testimonial,
+    });
+  } catch (error) {
+    console.error('Error updating testimonial:', error);
+    res.status(500).json({ success: false, message: 'Server error updating testimonial' });
+  }
+};
+
+// @desc    Delete a testimonial
+// @route   DELETE /api/testimonials/:id
+// @access  Private/Admin/Owner
+export const deleteTestimonial = async (req, res) => {
+  try {
+    const testimonial = await Testimonial.findById(req.params.id);
+
+    if (!testimonial) {
+      return res.status(404).json({ success: false, message: 'Testimonial not found' });
+    }
+
+    // Check authorization: Admin OR Owner
+    const isAdmin = req.user && req.user.role === 'admin';
+    const isOwner = testimonial.user && testimonial.user.toString() === req.user._id.toString();
+
+    if (!isAdmin && !isOwner) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to delete this testimonial',
+      });
+    }
+
+    await Testimonial.findByIdAndDelete(req.params.id);
 
     res.status(200).json({
       success: true,

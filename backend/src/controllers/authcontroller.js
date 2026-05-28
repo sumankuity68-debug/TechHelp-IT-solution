@@ -15,13 +15,13 @@ const generateToken = (id) => {
 // ── @access  Public
 export const register = async (req, res) => {
   try {
-    const { name, email, password, role, adminCode } = req.body;
+    const { name, email, phone, password, role, adminCode } = req.body;
 
     // Validate input
-    if (!name || !email || !password) {
+    if (!name || !email || !phone || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide name, email, and password',
+        message: 'Please provide name, email, phone number, and password',
       });
     }
 
@@ -57,6 +57,7 @@ export const register = async (req, res) => {
     const user = await User.create({
       name,
       email,
+      phone,
       password,
       role: role || 'user',
       isVerified: false, // ✅ Not verified initially
@@ -131,14 +132,14 @@ export const register = async (req, res) => {
         requiresVerification: true,
       });
     } catch (emailError) {
-      console.error('Verification email error:', emailError);
+      console.error('Verification code dispatch error:', emailError);
 
       // If email fails, delete the user and return error
       await User.findByIdAndDelete(user._id);
 
       return res.status(500).json({
         success: false,
-        message: 'Failed to send verification email. Please try again.',
+        message: 'Failed to send verification code. Please try again.',
       });
     }
   } catch (error) {
@@ -200,6 +201,11 @@ export const login = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        avatar: user.avatar || '',
+        phone: user.phone || '',
+        address: user.address || '',
+        bio: user.bio || '',
+        createdAt: user.createdAt,
       },
     });
   } catch (error) {
@@ -277,7 +283,7 @@ export const updateProfile = async (req, res) => {
 export const forgotPassword = async (req, res) => {
   let user;
   try {
-    const { email } = req.body;
+    const { email, deliveryMethod } = req.body;
 
     if (!email) {
       return res.status(400).json({
@@ -350,7 +356,7 @@ export const forgotPassword = async (req, res) => {
   } catch (error) {
     console.error('Forgot password error:', error);
 
-    // Clear reset token if email fails
+    // Clear reset token if email/SMS fails
     if (user) {
       user.resetPasswordToken = null;
       user.resetPasswordExpire = null;
@@ -359,10 +365,11 @@ export const forgotPassword = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: 'Email could not be sent. Please try again later.',
+      message: 'Email/SMS could not be sent. Please try again later.',
     });
   }
 };
+
 
 export const resetPassword = async (req, res) => {
   try {
@@ -679,6 +686,8 @@ export const resendVerification = async (req, res) => {
       </html>
     `;
 
+    const smsMessage = `🎉 Welcome back to TechHelp! Your verification code is: ${verificationToken}. Valid for 24 hours.`;
+
     try {
       await sendEmail({
         email: user.email,
@@ -688,14 +697,14 @@ export const resendVerification = async (req, res) => {
 
       res.status(200).json({
         success: true,
-        message: 'Verification email resent successfully! Please check your inbox.',
+        message: 'Verification code resent successfully! Please check your inbox.',
       });
     } catch (emailError) {
-      console.error('Resend verification email error:', emailError);
+      console.error('Resend verification error:', emailError);
 
       return res.status(500).json({
         success: false,
-        message: 'Failed to resend verification email. Please try again.',
+        message: 'Failed to resend verification code. Please try again.',
       });
     }
   } catch (error) {
@@ -703,6 +712,54 @@ export const resendVerification = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error resending verification email',
+    });
+  }
+};
+
+// @desc    Change password using current password (logged in users)
+// @route   PUT /api/auth/change-password
+// @access  Private
+export const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide current password and new password',
+      });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be at least 6 characters',
+      });
+    }
+
+    // Fetch user and explicitly select password field
+    const user = await User.findById(req.user.id).select('+password');
+
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        message: 'Incorrect current password',
+      });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Password changed successfully',
+    });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error changing password',
     });
   }
 };

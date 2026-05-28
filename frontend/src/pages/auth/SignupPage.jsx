@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useToast } from '../../context/ToastContext';
 
 export default function SignupPage() {
   const [step, setStep] = useState(1);
@@ -9,6 +10,7 @@ export default function SignupPage() {
   const [form, setForm] = useState({
     name: '',
     email: '',
+    phone: '',
     password: '',
     confirm: '',
     role: 'user',
@@ -18,6 +20,7 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
+  const { showSuccess, showError } = useToast();
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -30,6 +33,11 @@ export default function SignupPage() {
 
     if (form.password !== form.confirm) {
       setError('Passwords do not match');
+      return;
+    }
+
+    if (!form.phone.trim()) {
+      setError('Phone number is required');
       return;
     }
 
@@ -52,6 +60,7 @@ export default function SignupPage() {
         body: JSON.stringify({
           name: form.name,
           email: form.email,
+          phone: form.phone,
           password: form.password,
           role: form.role,
           adminCode: form.role === 'admin' ? form.adminCode : undefined,
@@ -92,7 +101,7 @@ export default function SignupPage() {
         throw new Error(data.message || 'Verification failed');
       }
 
-      alert('✅ Account created and email verified successfully! You can now log in.');
+      showSuccess('Account created and email verified successfully! You can now log in.');
       navigate('/login');
     } catch (err) {
       setError(err.message);
@@ -119,7 +128,7 @@ export default function SignupPage() {
         throw new Error(data.message || 'Failed to resend verification code');
       }
 
-      alert('✅ Verification code resent successfully! Please check your inbox.');
+      showSuccess('Verification code resent successfully! Please check your inbox.');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -245,6 +254,46 @@ export default function SignupPage() {
                   required
                   placeholder="you@example.com"
                   value={form.email}
+                  onChange={handleChange}
+                  style={{
+                    width: '100%',
+                    padding: '12px 15px',
+                    background: '#f9fafb',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: 8,
+                    color: '#1a1a1a',
+                    fontSize: 14,
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#667eea';
+                    e.target.style.background = '#fff';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#e5e7eb';
+                    e.target.style.background = '#f9fafb';
+                  }}
+                />
+              </div>
+
+              {/* Phone Number */}
+              <div style={{ marginBottom: 20 }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: '#374151',
+                  marginBottom: 8,
+                }}>
+                  Phone Number
+                </label>
+                <input
+                  name="phone"
+                  type="tel"
+                  required
+                  placeholder="+1234567890"
+                  value={form.phone}
                   onChange={handleChange}
                   style={{
                     width: '100%',

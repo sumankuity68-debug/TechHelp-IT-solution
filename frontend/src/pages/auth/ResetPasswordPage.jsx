@@ -5,10 +5,12 @@
 // ────────────────────────────────────────────────────────────────────────
 import { useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
+import { useToast } from '../../context/ToastContext';
 
 export default function ResetPasswordPage() {
   const { token } = useParams();
   const navigate = useNavigate();
+  const { showSuccess } = useToast();
   
   const [form, setForm] = useState({ password: '', confirm: '' });
   const [loading, setLoading] = useState(false);
@@ -44,7 +46,7 @@ export default function ResetPasswordPage() {
       }
 
       // Success - redirect to login
-      alert('Password reset successful! You can now login with your new password.');
+      showSuccess('Password reset successful! You can now login with your new password.');
       navigate('/login');
     } catch (err) {
       setError(err.message);
