@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useToast } from '../../context/ToastContext';
+import GoogleAuthButton from '../../components/GoogleAuthButton';
 
 export default function SignupPage() {
   const [step, setStep] = useState(1);
@@ -537,7 +538,7 @@ export default function SignupPage() {
               display: 'flex',
               alignItems: 'center',
               gap: 16,
-              margin: '28px 0',
+              margin: '24px 0 16px',
               color: '#9ca3af',
               fontSize: 12,
             }}>
@@ -546,7 +547,10 @@ export default function SignupPage() {
               <div style={{ flex: 1, height: 1, background: '#e5e7eb' }} />
             </div>
 
-            <p style={{ textAlign: 'center', fontSize: 14, color: '#6b7280' }}>
+            {/* Google Sign-Up */}
+            <GoogleAuthButton label="Sign up with Google" darkMode={false} mode="signup" />
+
+            <p style={{ textAlign: 'center', fontSize: 14, color: '#6b7280', marginTop: 20 }}>
               Already have an account?{' '}
               <Link to="/login" style={{ color: '#667eea', textDecoration: 'none', fontWeight: 500 }}>
                 Sign in

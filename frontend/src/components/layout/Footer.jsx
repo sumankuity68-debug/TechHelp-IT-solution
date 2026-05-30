@@ -2,6 +2,7 @@
 // Site-wide footer adapted to Light/Dark Mode theme variables
 
 import { Link } from 'react-router-dom';
+import Logo from '../ui/Logo';
 
 export default function Footer() {
   const footerLinks = {
@@ -28,12 +29,8 @@ export default function Footer() {
         }} className="footer-grid">
           {/* Brand col */}
           <div>
-            <div style={{
-              fontFamily: 'Fraunces, serif',
-              fontSize: 24, fontWeight: 700,
-              color: 'var(--text-primary)', marginBottom: 16,
-            }}>
-              TechHelp<span style={{ color: 'var(--accent-color)' }}>IT</span>
+            <div style={{ marginBottom: 16 }}>
+              <Logo size={42} />
             </div>
             <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.7, maxWidth: 280 }}>
               We build high-performance IT solutions that move businesses forward. From concept to cloud deployment.

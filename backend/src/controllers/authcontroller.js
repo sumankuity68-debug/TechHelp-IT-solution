@@ -3,11 +3,240 @@ import crypto from 'crypto';
 import sendEmail from '../utils/sendEmail.js';
 import jwt from 'jsonwebtoken';
 import User from '../models/user.js';
+import { OAuth2Client } from 'google-auth-library';
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE || '30d',
   });
+};
+
+// ── @route   POST /api/auth/google
+// ── @desc    Sign in via Google OAuth (existing accounts only)
+// ── @access  Public
+export const googleAuth = async (req, res) => {
+  try {
+    const { credential } = req.body;
+
+    if (!credential) {
+      return res.status(400).json({
+        success: false,
+        message: 'Google credential token is required',
+      });
+    }
+
+    // Verify the Google ID token
+    let payload;
+    try {
+      const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+      payload = ticket.getPayload();
+    } catch (verifyError) {
+      console.error('Google token verification failed:', verifyError);
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid Google token. Please try again.',
+      });
+    }
+
+    const { sub: googleId, email, name, picture } = payload;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Google account must have an email address',
+      });
+    }
+
+    // Only allow existing accounts — no auto-registration via Google
+    const user = await User.findOne({ $or: [{ googleId }, { email: email.toLowerCase() }] });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'No account found with this Google email. Please sign up first.',
+        requiresSignup: true,
+      });
+    }
+
+    // Link Google account if not already linked
+    if (!user.googleId) {
+      user.googleId = googleId;
+      user.authProvider = 'google';
+    }
+    if (!user.isVerified) {
+      user.isVerified = true;
+    }
+    if (!user.avatar && picture) {
+      user.avatar = picture;
+    }
+    await user.save({ validateBeforeSave: false });
+
+    const token = generateToken(user._id);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Google sign-in successful',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar || '',
+        phone: user.phone || '',
+        address: user.address || '',
+        bio: user.bio || '',
+        createdAt: user.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error('Google auth error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during Google authentication',
+    });
+  }
+};
+
+// ── @route   POST /api/auth/google-token
+// ── @desc    Sign in via Google access_token flow (existing accounts only — no auto-registration)
+// ── @access  Public
+export const googleTokenAuth = async (req, res) => {
+  try {
+    const { googleId, email, name, picture } = req.body;
+
+    if (!googleId || !email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Google ID and email are required',
+      });
+    }
+
+    // LOGIN MODE — only allow existing accounts, block new users
+    const user = await User.findOne({ $or: [{ googleId }, { email: email.toLowerCase() }] });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'No account found with this Google email. Please sign up first.',
+        requiresSignup: true,
+      });
+    }
+
+    // Link Google account if not already linked
+    if (!user.googleId) {
+      user.googleId = googleId;
+      user.authProvider = 'google';
+    }
+    if (!user.isVerified) {
+      user.isVerified = true;
+    }
+    if (!user.avatar && picture) {
+      user.avatar = picture;
+    }
+    await user.save({ validateBeforeSave: false });
+
+    const token = generateToken(user._id);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Google sign-in successful',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar || '',
+        phone: user.phone || '',
+        address: user.address || '',
+        bio: user.bio || '',
+        createdAt: user.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error('Google token auth error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during Google authentication',
+    });
+  }
+};
+
+// ── @route   POST /api/auth/google-signup
+// ── @desc    Sign up / Sign in via Google on the Signup page (allows new user creation)
+// ── @access  Public
+export const googleSignupAuth = async (req, res) => {
+  try {
+    const { googleId, email, name, picture } = req.body;
+
+    if (!googleId || !email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Google ID and email are required',
+      });
+    }
+
+    // SIGNUP MODE — find existing user or create a new one
+    let user = await User.findOne({ $or: [{ googleId }, { email: email.toLowerCase() }] });
+
+    if (user) {
+      // Existing user — just link Google if not already linked and log them in
+      if (!user.googleId) {
+        user.googleId = googleId;
+        user.authProvider = 'google';
+      }
+      if (!user.isVerified) {
+        user.isVerified = true;
+      }
+      if (!user.avatar && picture) {
+        user.avatar = picture;
+      }
+      await user.save({ validateBeforeSave: false });
+    } else {
+      // New user — create account from Google profile (no password or OTP needed)
+      user = await User.create({
+        name,
+        email: email.toLowerCase(),
+        googleId,
+        authProvider: 'google',
+        avatar: picture || '',
+        isVerified: true, // Google already verified the email
+        role: 'user',
+        phone: '',
+      });
+    }
+
+    const token = generateToken(user._id);
+
+    return res.status(201).json({
+      success: true,
+      message: user.googleId ? 'Google sign-in successful' : 'Account created with Google successfully',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar || '',
+        phone: user.phone || '',
+        address: user.address || '',
+        bio: user.bio || '',
+        createdAt: user.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error('Google signup auth error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during Google sign-up',
+    });
+  }
 };
 
 // ── @route   POST /api/auth/register

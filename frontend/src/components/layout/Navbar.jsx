@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import Logo from '../ui/Logo';
 
 const navLinks = [
   { label: 'About',        to: '/about'        },
@@ -68,10 +69,8 @@ export default function Navbar() {
       }}>
 
         {/* Logo */}
-        <Link to="/" style={{ textDecoration: 'none' }}>
-          <span style={{ fontFamily: 'Fraunces, serif', fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.5px' }}>
-            TechHelp<span style={{ color: 'var(--accent-color)' }}>IT</span>
-          </span>
+        <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+          <Logo size={36} />
         </Link>
 
         {/* Desktop links */}

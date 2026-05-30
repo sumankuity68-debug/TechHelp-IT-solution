@@ -22,9 +22,19 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, 'Please provide a password'],
+      required: false,
       minlength: [6, 'Password must be at least 6 characters'],
       select: false,
+    },
+    googleId: {
+      type: String,
+      default: null,
+      sparse: true,
+    },
+    authProvider: {
+      type: String,
+      enum: ['local', 'google'],
+      default: 'local',
     },
     role: {
       type: String,
@@ -59,6 +69,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: '',
+      required: false,
     },
     address: {
       type: String,
@@ -79,7 +90,8 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
+  // Skip hashing if password is not set (Google OAuth users) or not modified
+  if (!this.password || !this.isModified('password')) {
     return next();
   }
   const salt = await bcrypt.genSalt(10);
