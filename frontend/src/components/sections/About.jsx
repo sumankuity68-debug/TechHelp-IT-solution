@@ -1,5 +1,16 @@
 // FILE: frontend/src/components/sections/About.jsx
-// About section with theme variable support
+// About section with theme variable support + Framer Motion scroll-triggered animations
+
+import { motion } from 'framer-motion';
+import {
+  fadeInUp,
+  slideInLeft,
+  slideInRight,
+  staggerContainer,
+  staggerContainerSlow,
+  cardReveal,
+  viewportOnce,
+} from '../../utils/animations';
 
 export default function About() {
   const pillars = [
@@ -31,8 +42,13 @@ export default function About() {
           gap: 80, alignItems: 'start',
         }} className="about-grid">
 
-          {/* Left */}
-          <div>
+          {/* Left — slides in from left */}
+          <motion.div
+            variants={slideInLeft}
+            initial="hidden"
+            whileInView="visible"
+            viewport={viewportOnce}
+          >
             <div className="section-label">Who We Are</div>
             <h2 style={{
               fontFamily: 'Fraunces, serif',
@@ -54,33 +70,57 @@ export default function About() {
               we bring the technical depth and design sensibility to make it excellent.
             </p>
 
-            {/* Mini badges */}
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 32 }}>
+            {/* Mini badges — stagger in */}
+            <motion.div
+              variants={staggerContainer}
+              initial="hidden"
+              whileInView="visible"
+              viewport={viewportOnce}
+              style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 32 }}
+            >
               {['React', 'Node.js', 'MongoDB', 'Tailwind CSS', 'AWS', 'Figma'].map(tech => (
-                <span key={tech} style={{
-                  padding: '6px 14px',
+                <motion.span
+                  key={tech}
+                  variants={fadeInUp}
+                  whileHover={{ scale: 1.06, y: -2 }}
+                  transition={{ type: 'spring', stiffness: 300 }}
+                  style={{
+                    padding: '6px 14px',
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 4, fontSize: 13, color: 'var(--text-secondary)',
+                    transition: 'background 0.3s, border 0.3s',
+                    cursor: 'default',
+                  }}
+                >
+                  {tech}
+                </motion.span>
+              ))}
+            </motion.div>
+          </motion.div>
+
+          {/* Right — Pillars, stagger in from right */}
+          <motion.div
+            variants={staggerContainerSlow}
+            initial="hidden"
+            whileInView="visible"
+            viewport={viewportOnce}
+            style={{ display: 'flex', flexDirection: 'column', gap: 24 }}
+          >
+            {pillars.map((p, i) => (
+              <motion.div
+                key={i}
+                variants={cardReveal}
+                whileHover={{ x: 6, transition: { type: 'spring', stiffness: 300, damping: 20 } }}
+                style={{
                   background: 'var(--bg-secondary)',
                   border: '1px solid var(--border-color)',
-                  borderRadius: 4, fontSize: 13, color: 'var(--text-secondary)',
+                  borderLeft: '3px solid var(--accent-color)',
+                  borderRadius: 8,
+                  padding: '28px 28px',
                   transition: 'background 0.3s, border 0.3s',
-                }}>
-                  {tech}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Right — Pillars */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-            {pillars.map((p, i) => (
-              <div key={i} style={{
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                borderLeft: '3px solid var(--accent-color)',
-                borderRadius: 8,
-                padding: '28px 28px',
-                transition: 'background 0.3s, border 0.3s',
-              }}>
+                }}
+              >
                 <div style={{ fontSize: 22, color: 'var(--accent-color)', marginBottom: 12 }}>{p.icon}</div>
                 <h3 style={{
                   fontFamily: 'Fraunces, serif',
@@ -90,9 +130,9 @@ export default function About() {
                   {p.title}
                 </h3>
                 <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.7 }}>{p.text}</p>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
 
       </div>

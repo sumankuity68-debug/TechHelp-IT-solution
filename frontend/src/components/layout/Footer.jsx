@@ -1,8 +1,10 @@
 // FILE: frontend/src/components/layout/Footer.jsx
-// Site-wide footer adapted to Light/Dark Mode theme variables
+// Site-wide footer adapted to Light/Dark Mode theme variables + Framer Motion
 
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import Logo from '../ui/Logo';
+import { fadeIn, staggerContainer, fadeInUp, viewportOnce } from '../../utils/animations';
 
 export default function Footer() {
   const footerLinks = {
@@ -12,12 +14,18 @@ export default function Footer() {
   };
 
   return (
-    <footer style={{
-      background: 'var(--bg-secondary)',
-      borderTop: '1px solid var(--border-color)',
-      padding: '72px 5% 40px',
-      transition: 'background 0.3s, border-top 0.3s',
-    }}>
+    <motion.footer
+      variants={fadeIn}
+      initial="hidden"
+      whileInView="visible"
+      viewport={viewportOnce}
+      style={{
+        background: 'var(--bg-secondary)',
+        borderTop: '1px solid var(--border-color)',
+        padding: '72px 5% 40px',
+        transition: 'background 0.3s, border-top 0.3s',
+      }}
+    >
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
 
         {/* Top row */}
@@ -38,20 +46,25 @@ export default function Footer() {
             {/* Socials */}
             <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
               {['Twitter', 'LinkedIn', 'GitHub', 'Dribbble'].map(s => (
-                <a key={s} href="#" style={{
-                  width: 36, height: 36,
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 4,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500,
-                  textDecoration: 'none',
-                  transition: 'border-color 0.2s, color 0.2s',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent-color)'; e.currentTarget.style.color = 'var(--accent-color)'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+                <motion.a
+                  key={s}
+                  href="#"
+                  whileHover={{ scale: 1.12, y: -2 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+                  style={{
+                    width: 36, height: 36,
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 4,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500,
+                    textDecoration: 'none',
+                    transition: 'border-color 0.2s, color 0.2s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent-color)'; e.currentTarget.style.color = 'var(--accent-color)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
                 >
                   {s[0]}
-                </a>
+                </motion.a>
               ))}
             </div>
           </div>
@@ -108,6 +121,6 @@ export default function Footer() {
           }
         }
       `}</style>
-    </footer>
+    </motion.footer>
   );
 }

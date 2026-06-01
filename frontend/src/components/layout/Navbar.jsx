@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import Logo from '../ui/Logo';
@@ -55,13 +56,18 @@ export default function Navbar() {
     : <span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{user?.name?.charAt(0).toUpperCase()}</span>;
 
   return (
-    <nav style={{
-      position: 'sticky', top: 0, zIndex: 100,
-      background: scrolled ? 'var(--nav-bg-scrolled)' : 'var(--nav-bg)',
-      backdropFilter: 'blur(14px)',
-      borderBottom: '1px solid var(--nav-border)',
-      transition: 'background 0.3s, border-bottom 0.3s',
-    }}>
+    <motion.nav
+      initial={{ y: -64, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      style={{
+        position: 'sticky', top: 0, zIndex: 100,
+        background: scrolled ? 'var(--nav-bg-scrolled)' : 'var(--nav-bg)',
+        backdropFilter: 'blur(14px)',
+        borderBottom: '1px solid var(--nav-border)',
+        transition: 'background 0.3s, border-bottom 0.3s',
+      }}
+    >
       <div style={{
         maxWidth: 1200, margin: '0 auto',
         padding: '0 5%', height: 68,
@@ -213,6 +219,6 @@ export default function Navbar() {
           to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
-    </nav>
+    </motion.nav>
   );
 }

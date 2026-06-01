@@ -536,17 +536,25 @@ function TestimonialCard({ t, onActionComplete, compact = false }) {
   const [error, setError] = useState('');
 
   const fetchTestimonials = async () => {
+    setLoading(true);
+    setError('');
     try {
       const res = await fetch('/api/testimonials');
       const data = await res.json();
       if (data.success) {
         setTestimonialsList(data.data);
+        setError('');
       } else {
         setError(data.message || 'Failed to load testimonials');
       }
     } catch (err) {
+      // Network error = backend not running
+      if (err instanceof TypeError && err.message.includes('fetch')) {
+        setError('Backend server is offline. Please start the backend with: cd backend && npm run dev');
+      } else {
+        setError('Could not load testimonials. Please try again.');
+      }
       console.error('Error fetching testimonials:', err);
-      setError('Could not connect to database. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -698,16 +706,35 @@ function TestimonialCard({ t, onActionComplete, compact = false }) {
         {error && !loading && (
           <div style={{
             textAlign: 'center',
-            padding: '28px',
-            background: 'rgba(239, 68, 68, 0.08)',
-            border: '1px solid rgba(239, 68, 68, 0.2)',
-            borderRadius: 8,
-            color: '#ef4444',
-            maxWidth: 500,
+            padding: '36px 28px',
+            background: 'rgba(239, 68, 68, 0.06)',
+            border: '1px solid rgba(239, 68, 68, 0.18)',
+            borderRadius: 12,
+            maxWidth: 560,
             margin: '0 auto 40px',
-            fontSize: 14,
           }}>
-            ⚠️ {error}
+            <div style={{ fontSize: 36, marginBottom: 12 }}>⚠️</div>
+            <p style={{ color: '#ef4444', fontSize: 14, lineHeight: 1.7, marginBottom: 20 }}>
+              {error}
+            </p>
+            <button
+              onClick={fetchTestimonials}
+              style={{
+                padding: '10px 24px',
+                background: 'var(--accent-color)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 6,
+                fontSize: 14,
+                fontWeight: 500,
+                cursor: 'pointer',
+                transition: 'opacity 0.2s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+            >
+              🔄 Retry
+            </button>
           </div>
         )}
 

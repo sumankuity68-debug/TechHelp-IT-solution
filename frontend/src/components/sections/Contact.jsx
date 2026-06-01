@@ -4,7 +4,17 @@
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
+import {
+  fadeInUp,
+  fadeIn,
+  slideInLeft,
+  slideInRight,
+  staggerContainer,
+  cardReveal,
+  viewportOnce,
+} from '../../utils/animations';
 
 export default function Contact() {
   const { user, token } = useAuth();
@@ -80,8 +90,13 @@ export default function Contact() {
           gap: 80, alignItems: 'start',
         }} className="contact-grid-layout">
 
-          {/* Left — Info */}
-          <div>
+          {/* Left — Info: slides in from left */}
+          <motion.div
+            variants={slideInLeft}
+            initial="hidden"
+            whileInView="visible"
+            viewport={viewportOnce}
+          >
             <div className="section-label">Get In Touch</div>
             <h2 style={{
               fontFamily: 'Fraunces, serif',
@@ -95,8 +110,14 @@ export default function Contact() {
               Tell us about your project. We respond to every inquiry within 24 hours.
             </p>
 
-            {/* Contact details */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Contact details — stagger in */}
+            <motion.div
+              variants={staggerContainer}
+              initial="hidden"
+              whileInView="visible"
+              viewport={viewportOnce}
+              style={{ display: 'flex', flexDirection: 'column', gap: 20 }}
+            >
               {[
                 { label: 'Email',     value: 'contact@techhelpit.com', href: 'mailto:contact@techhelpit.com' },
                 { label: 'Phone',     value: '+91 98765 43210', href: 'tel:+919876543210' },
@@ -105,7 +126,7 @@ export default function Contact() {
                 { label: 'Facebook',  value: 'facebook.com/techhelp.it.solutions', href: 'https://facebook.com/techhelp.it.solutions' },
                 { label: 'Instagram', value: 'instagram.com/techhelp.it.solutions', href: 'https://instagram.com/techhelp.it.solutions' },
               ].map(item => (
-                <div key={item.label} style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+                <motion.div key={item.label} variants={fadeInUp} style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
                   <div style={{
                     width: 8, height: 8, borderRadius: '50%',
                     background: 'var(--accent-color)', marginTop: 6, flexShrink: 0,
@@ -127,9 +148,9 @@ export default function Contact() {
                       <div style={{ fontSize: 15, color: 'var(--text-primary)' }}>{item.value}</div>
                     )}
                   </div>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
 
             {/* Map embed */}
             <div style={{
@@ -149,14 +170,20 @@ export default function Contact() {
                 referrerPolicy="no-referrer-when-downgrade"
               />
             </div>
-          </div>
+          </motion.div>
 
-          {/* Right — Form */}
-          <div style={{
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: 4, padding: '44px 40px',
-          }}>
+          {/* Right — Form: slides in from right */}
+          <motion.div
+            variants={slideInRight}
+            initial="hidden"
+            whileInView="visible"
+            viewport={viewportOnce}
+            style={{
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 4, padding: '44px 40px',
+            }}
+          >
             {/* ── AUTH GATE: not logged in ── */}
             {!user ? (
               <div style={{ textAlign: 'center', padding: '48px 20px' }}>
@@ -305,7 +332,7 @@ export default function Contact() {
                 </button>
               </form>
             )}
-          </div>
+          </motion.div>
         </div>
 
       </div>

@@ -1,9 +1,19 @@
 // FILE: frontend/src/components/sections/Services.jsx
-// Services grid with 3D tilt cards + Ask an Expert inquiry modal
+// Services grid with 3D tilt cards + Ask an Expert inquiry modal + Framer Motion animations
 
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
+import {
+  fadeInUp,
+  fadeIn,
+  staggerContainer,
+  staggerContainerSlow,
+  cardReveal,
+  slideInLeft,
+  viewportOnce,
+} from '../../utils/animations';
 
 const defaultServices = [
   {
@@ -531,25 +541,47 @@ export default function Services() {
   return (
     <section id="services" className="section" style={{ background: 'var(--bg-primary)', transition: 'background 0.3s' }}>
       <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-        <div style={{ marginBottom: 60 }}>
-          <div className="section-label">What We Do</div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 20 }}>
-            <h2 style={{
-              fontFamily: 'Fraunces, serif', fontSize: 'clamp(32px, 4vw, 50px)',
-              fontWeight: 700, lineHeight: 1.1, color: 'var(--text-primary)',
-              letterSpacing: '-1px', maxWidth: 480,
-            }}>
-              Enterprise solutions designed for <em style={{ fontStyle: 'italic', color: 'var(--accent-color)' }}>results.</em>
-            </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: 15, maxWidth: 360, lineHeight: 1.7 }}>
-              End-to-end IT services. Click <strong style={{ color: 'var(--accent-color)' }}>Ask Expert</strong> on any card to get answers directly from our specialists.
-            </p>
-          </div>
-        </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}>
-          {items.map((s, i) => <ServiceCard key={s._id || i} s={mapService(s, i)} />)}
-        </div>
+        {/* Animated section header */}
+        <motion.div
+          variants={staggerContainer}
+          initial="hidden"
+          whileInView="visible"
+          viewport={viewportOnce}
+          style={{ marginBottom: 60 }}
+        >
+          <motion.div variants={fadeIn} className="section-label">What We Do</motion.div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 20 }}>
+            <motion.h2
+              variants={fadeInUp}
+              style={{
+                fontFamily: 'Fraunces, serif', fontSize: 'clamp(32px, 4vw, 50px)',
+                fontWeight: 700, lineHeight: 1.1, color: 'var(--text-primary)',
+                letterSpacing: '-1px', maxWidth: 480,
+              }}
+            >
+              Enterprise solutions designed for <em style={{ fontStyle: 'italic', color: 'var(--accent-color)' }}>results.</em>
+            </motion.h2>
+            <motion.p variants={fadeInUp} style={{ color: 'var(--text-secondary)', fontSize: 15, maxWidth: 360, lineHeight: 1.7 }}>
+              End-to-end IT services. Click <strong style={{ color: 'var(--accent-color)' }}>Ask Expert</strong> on any card to get answers directly from our specialists.
+            </motion.p>
+          </div>
+        </motion.div>
+
+        {/* Cards — stagger in on scroll */}
+        <motion.div
+          variants={staggerContainerSlow}
+          initial="hidden"
+          whileInView="visible"
+          viewport={viewportOnce}
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 24 }}
+        >
+          {items.map((s, i) => (
+            <motion.div key={s._id || i} variants={cardReveal}>
+              <ServiceCard s={mapService(s, i)} />
+            </motion.div>
+          ))}
+        </motion.div>
       </div>
 
       <style>{`
