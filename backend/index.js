@@ -8,22 +8,44 @@ import contactRoutes from './src/routes/contact.routes.js';
 import servicesRoutes from './src/routes/services.routes.js';
 import testimonialRoutes from './src/routes/testimonial.routes.js';
 import userRoutes from './src/routes/user.routes.js';
+import { apiLimiter } from './src/middleware/rateLimiter.js';
 
 dotenv.config();
 
 connectDB();
 const app = express();
 
-app.use(cors());
+// ── CORS — only allow whitelisted origins ────────────────────────────────
+const allowedOrigins = [
+  process.env.FRONTEND_URL || 'http://localhost:5173',
+  'http://localhost:5173',
+  'http://localhost:3000',
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. curl, Postman, mobile apps)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS: Origin '${origin}' is not allowed`));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+}));
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// ── Global rate limit: 100 req / 15 min per IP ───────────────────────────
+app.use('/api', apiLimiter);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/services', servicesRoutes);
 app.use('/api/testimonials', testimonialRoutes);
 app.use('/api/users', userRoutes);
+
 app.get('/api/health', (req, res) => {
     res.status(200).json({
         success: true,
@@ -32,7 +54,7 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-
+// ── 404 handler ──────────────────────────────────────────────────────────
 app.use((req, res) => {
     res.status(404).json({
         success: false,
@@ -40,8 +62,13 @@ app.use((req, res) => {
     });
 });
 
+// ── Global error handler ─────────────────────────────────────────────────
 app.use((err, req, res, next) => {
     console.error('Error:', err.message);
+    // Handle CORS errors explicitly
+    if (err.message && err.message.startsWith('CORS:')) {
+        return res.status(403).json({ success: false, message: err.message });
+    }
     res.status(err.statusCode || 500).json({
         success: false,
         message: err.message || 'Server error',
@@ -51,11 +78,12 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 const server = app.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+    console.log(`🔒 CORS allowed origins: ${allowedOrigins.join(', ')}`);
 });
 
 server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
-        console.error(`❌ Port ${PORT} is already in use. Run: npx kill-port ${PORT}  then try again.`);
+        console.error(`❌ Port ${PORT} is already in use. Run: npx kill-port ${PORT} then try again.`);
         process.exit(1);
     } else {
         throw err;

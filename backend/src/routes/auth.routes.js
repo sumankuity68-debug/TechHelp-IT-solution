@@ -1,21 +1,81 @@
 import express from 'express';
 import { register, login, getMe, updateProfile, forgotPassword, resetPassword, resetPasswordOTP, findAccount, verifyEmail, resendVerification, changePassword, googleAuth, googleTokenAuth, googleSignupAuth } from '../controllers/authcontroller.js';
 import { protect } from '../middleware/auth.js';
+import { authLimiter, passwordResetLimiter } from '../middleware/rateLimiter.js';
+import { validate } from '../middleware/validate.js';
+import validators from '../middleware/validate.js';
 
 const router = express.Router();
 
-router.post('/register', register);
-router.post('/login', login);
-router.post('/google', googleAuth);            // id-token flow (login only)
-router.post('/google-token', googleTokenAuth); // access-token login (existing users only)
-router.post('/google-signup', googleSignupAuth); // access-token signup (allows new users)
-router.post('/forgot-password', forgotPassword);
-router.put('/reset-password/:token', resetPassword);
-router.post('/reset-password-otp', resetPasswordOTP);
-router.post('/find-account', findAccount);
+// ── Public routes (rate limited) ─────────────────────────────────────────
+router.post('/register', authLimiter,
+  validate(
+    validators.required(['name', 'email', 'phone', 'password']),
+    validators.isEmail('email'),
+    validators.minLength('password', 6),
+    validators.maxLength('password', 128),
+    validators.isPhone('phone'),
+  ),
+  register
+);
+
+router.post('/login', authLimiter,
+  validate(
+    validators.required(['email', 'password']),
+    validators.isEmail('email'),
+    validators.minLength('password', 1),
+  ),
+  login
+);
+
+router.post('/google', authLimiter, googleAuth);
+router.post('/google-token', authLimiter, googleTokenAuth);
+router.post('/google-signup', authLimiter, googleSignupAuth);
+
+router.post('/forgot-password', passwordResetLimiter,
+  validate(
+    validators.required(['email']),
+    validators.isEmail('email'),
+  ),
+  forgotPassword
+);
+
+router.put('/reset-password/:token', passwordResetLimiter,
+  validate(
+    validators.required(['password']),
+    validators.minLength('password', 6),
+  ),
+  resetPassword
+);
+
+router.post('/reset-password-otp', passwordResetLimiter,
+  validate(
+    validators.required(['email', 'otp', 'password']),
+    validators.isEmail('email'),
+    validators.minLength('password', 6),
+  ),
+  resetPasswordOTP
+);
+
+router.post('/find-account', authLimiter,
+  validate(
+    validators.required(['email']),
+    validators.isEmail('email'),
+  ),
+  findAccount
+);
+
 router.get('/verify-email/:token', verifyEmail);
 router.post('/verify-email', verifyEmail);
-router.post('/resend-verification', resendVerification);
+router.post('/resend-verification', authLimiter,
+  validate(
+    validators.required(['email']),
+    validators.isEmail('email'),
+  ),
+  resendVerification
+);
+
+// ── Protected routes ─────────────────────────────────────────────────────
 router.get('/me', protect, getMe);
 router.put('/profile', protect, updateProfile);
 router.put('/change-password', protect, changePassword);
