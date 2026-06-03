@@ -1,13 +1,42 @@
 import User from '../models/user.js';
+import { parsePaginationParams } from '../utils/paginate.js';
 
+// @desc    Get all users with pagination, search, and role filter
+// @route   GET /api/users?page=1&limit=10&search=john&role=admin
+// @access  Private/Admin
 export const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select('-password').sort({ createdAt: -1 });
-    
+    const { search, role } = req.query;
+
+    // Build filter
+    const filter = {};
+    if (role && ['user', 'admin'].includes(role)) {
+      filter.role = role;
+    }
+    if (search) {
+      const regex = new RegExp(search.trim(), 'i');
+      filter.$or = [{ name: regex }, { email: regex }];
+    }
+
+    const { page, limit, sort, skip } = parsePaginationParams(req.query, { limit: 10 });
+    const [data, total] = await Promise.all([
+      User.find(filter).select('-password').sort(sort).skip(skip).limit(limit),
+      User.countDocuments(filter),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
     res.status(200).json({
       success: true,
-      count: users.length,
-      data: users,
+      data,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
     });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error fetching users' });

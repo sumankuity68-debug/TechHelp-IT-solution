@@ -7,6 +7,16 @@
 
 const BASE = '/api';
 
+// ── Helper: build query string from params object (omits null/undefined) ────────
+const buildQuery = (params = {}) => {
+  const q = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== null && v !== undefined && v !== '') q.append(k, v);
+  });
+  const str = q.toString();
+  return str ? `?${str}` : '';
+};
+
 // ── Helper: get auth header ──────────────────────────────────────────────
 const authHeader = () => {
   const token = localStorage.getItem('token');
@@ -55,9 +65,9 @@ export const contactAPI = {
       body: JSON.stringify(form),
     }).then(handleResponse),
 
-  // Admin only
-  getAll: () =>
-    fetch(`${BASE}/contact`, {
+  // Admin only — supports pagination: { page, limit, sort, status, search }
+  getAll: (params = {}) =>
+    fetch(`${BASE}/contact${buildQuery(params)}`, {
       headers: { 'Content-Type': 'application/json', ...authHeader() },
     }).then(handleResponse),
 
@@ -101,5 +111,83 @@ export const servicesAPI = {
     fetch(`${BASE}/services/${id}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json', ...authHeader() },
+    }).then(handleResponse),
+};
+
+// ═══════════════════════════════════════════════════════════════════════
+// TESTIMONIALS
+// ═══════════════════════════════════════════════════════════════════════
+export const testimonialsAPI = {
+  // Paginated public fetch: { page, limit, sort, rating }
+  getAll: (params = {}) =>
+    fetch(`${BASE}/testimonials${buildQuery(params)}`).then(handleResponse),
+
+  // Return all without pagination (admin use)
+  getAll_nopaginate: () =>
+    fetch(`${BASE}/testimonials?all=true`).then(handleResponse),
+
+  create: (data) =>
+    fetch(`${BASE}/testimonials`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+      body: JSON.stringify(data),
+    }).then(handleResponse),
+
+  update: (id, data) =>
+    fetch(`${BASE}/testimonials/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+      body: JSON.stringify(data),
+    }).then(handleResponse),
+
+  delete: (id) =>
+    fetch(`${BASE}/testimonials/${id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+    }).then(handleResponse),
+
+  vote: (id, data) =>
+    fetch(`${BASE}/testimonials/${id}/vote`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then(handleResponse),
+
+  reply: (id, data) =>
+    fetch(`${BASE}/testimonials/${id}/reply`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    }).then(handleResponse),
+};
+
+// ═══════════════════════════════════════════════════════════════════════
+// USERS (Admin only)
+// ═══════════════════════════════════════════════════════════════════════
+export const usersAPI = {
+  // Paginated: { page, limit, sort, search, role }
+  getAll: (params = {}) =>
+    fetch(`${BASE}/users${buildQuery(params)}`, {
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+    }).then(handleResponse),
+
+  delete: (id) =>
+    fetch(`${BASE}/users/${id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+    }).then(handleResponse),
+
+  updateRole: (id, role) =>
+    fetch(`${BASE}/users/${id}/role`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+      body: JSON.stringify({ role }),
+    }).then(handleResponse),
+
+  update: (id, data) =>
+    fetch(`${BASE}/users/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+      body: JSON.stringify(data),
     }).then(handleResponse),
 };

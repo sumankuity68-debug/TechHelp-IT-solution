@@ -1,4 +1,5 @@
 import Contact from '../models/contact.js';
+import { paginate, parsePaginationParams } from '../utils/paginate.js';
 
 export const submitContact = async (req, res) => {
   try {
@@ -32,14 +33,41 @@ export const submitContact = async (req, res) => {
   }
 };
 
+// @desc    Get all contacts with pagination, filtering, and search
+// @route   GET /api/contact?page=1&limit=10&status=pending&search=john
+// @access  Private/Admin
 export const getAllContacts = async (req, res) => {
   try {
-    const contacts = await Contact.find().sort({ createdAt: -1 });
+    const { status, search } = req.query;
+
+    // Build filter
+    const filter = {};
+    if (status && ['pending', 'contacted', 'closed'].includes(status)) {
+      filter.status = status;
+    }
+    if (search) {
+      const regex = new RegExp(search.trim(), 'i');
+      filter.$or = [{ name: regex }, { email: regex }, { service: regex }];
+    }
+
+    // Run paginated query
+    const { page, limit, sort, skip } = parsePaginationParams(req.query, { limit: 15 });
+    const [data, total] = await Promise.all([
+      Contact.find(filter).sort(sort).skip(skip).limit(limit),
+      Contact.countDocuments(filter),
+    ]);
 
     res.status(200).json({
       success: true,
-      count: contacts.length,
-      data: contacts,
+      data,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page < Math.ceil(total / limit),
+        hasPrevPage: page > 1,
+      },
     });
   } catch (error) {
     console.error('Get contacts error:', error);

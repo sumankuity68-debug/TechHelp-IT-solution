@@ -1,4 +1,5 @@
 import Testimonial from '../models/testimonial.js';
+import { parsePaginationParams } from '../utils/paginate.js';
 
 // Auto-seed data
 const seedDefaultTestimonials = async () => {
@@ -40,22 +41,61 @@ const seedDefaultTestimonials = async () => {
   await Testimonial.insertMany(defaults);
 };
 
-// @desc    Get all testimonials (seeds default list if empty)
-// @route   GET /api/testimonials
+// @desc    Get testimonials with pagination and optional rating filter
+// @route   GET /api/testimonials?page=1&limit=6&rating=5&sort=-createdAt
+// @route   GET /api/testimonials?all=true  (returns all, admin use)
 // @access  Public
 export const getTestimonials = async (req, res) => {
   try {
     let count = await Testimonial.countDocuments();
     if (count === 0) {
       await seedDefaultTestimonials();
+      count = await Testimonial.countDocuments();
     }
-    const testimonials = await Testimonial.find()
-      .populate('user', 'name email avatar role')
-      .sort({ createdAt: -1 });
+
+    // ?all=true — return all without pagination (for admin dashboard)
+    if (req.query.all === 'true') {
+      const testimonials = await Testimonial.find()
+        .populate('user', 'name email avatar role')
+        .sort('-createdAt');
+      return res.status(200).json({
+        success: true,
+        count: testimonials.length,
+        data: testimonials,
+      });
+    }
+
+    // Build filter (optional rating filter)
+    const filter = {};
+    const rating = parseInt(req.query.rating);
+    if (rating >= 1 && rating <= 5) {
+      filter.rating = rating;
+    }
+
+    // Paginate
+    const { page, limit, sort, skip } = parsePaginationParams(req.query, { limit: 6 });
+    const [data, total] = await Promise.all([
+      Testimonial.find(filter)
+        .populate('user', 'name email avatar role')
+        .sort(sort)
+        .skip(skip)
+        .limit(limit),
+      Testimonial.countDocuments(filter),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
     res.status(200).json({
       success: true,
-      count: testimonials.length,
-      data: testimonials,
+      data,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
     });
   } catch (error) {
     console.error('Error fetching testimonials:', error);
