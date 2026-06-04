@@ -110,12 +110,11 @@ export default function Contact() {
               style={{ display: 'flex', flexDirection: 'column', gap: 20 }}
             >
               {[
-                { label: 'Email',     value: 'contact@techhelpit.com', href: 'mailto:contact@techhelpit.com' },
-                { label: 'Phone',     value: '+91 98765 43210', href: 'tel:+919876543210' },
+                { label: 'Email',     value: 'sumakuity68@gmail.com',                    href: 'mailto:sumakuity68@gmail.com' },
+                { label: 'Phone',     value: '+91 98836 33066',                          href: 'tel:+919883633066' },
                 { label: 'Location',  value: 'Kolkata, West Bengal, IN' },
-                { label: 'LinkedIn',  value: 'linkedin.com/company/techhelp-it-solutions', href: 'https://linkedin.com/company/techhelp-it-solutions' },
-                { label: 'Facebook',  value: 'facebook.com/techhelp.it.solutions', href: 'https://facebook.com/techhelp.it.solutions' },
-                { label: 'Instagram', value: 'instagram.com/techhelp.it.solutions', href: 'https://instagram.com/techhelp.it.solutions' },
+                { label: 'LinkedIn',  value: 'linkedin.com/in/suman-kuity-a7a77a324',   href: 'https://www.linkedin.com/in/suman-kuity-a7a77a324/' },
+                { label: 'Instagram', value: 'instagram.com/suman_kuity68',              href: 'https://www.instagram.com/suman_kuity68/' },
               ].map(item => (
                 <motion.div key={item.label} variants={fadeInUp} style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
                   <div style={{
