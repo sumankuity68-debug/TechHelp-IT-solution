@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
+import { contactAPI } from '../../utils/api';
 import {
   fadeInUp,
   fadeIn,
@@ -34,7 +35,7 @@ export default function Contact() {
           setMapUrl(`https://maps.google.com/maps?q=${latitude},${longitude}&t=&z=15&ie=UTF8&iwloc=&output=embed`);
         },
         (err) => {
-          console.log("Geolocation error or permission denied, using default Kolkata location.", err);
+          // Geolocation denied — silently fall back to default Kolkata location
         }
       );
     }
@@ -50,18 +51,8 @@ export default function Contact() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/contact', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify(form),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to submit form');
-
+      // Use centralized contactAPI instead of raw fetch
+      await contactAPI.submit(form);
       setSubmitted(true);
       setForm({ name: user?.name || '', email: user?.email || '', service: '', message: '' });
     } catch (err) {

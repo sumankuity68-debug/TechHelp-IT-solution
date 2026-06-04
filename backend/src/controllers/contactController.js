@@ -1,6 +1,25 @@
 import Contact from '../models/contact.js';
 import { paginate, parsePaginationParams } from '../utils/paginate.js';
 
+// @desc    Get contacts submitted by the logged-in user (matched by email)
+// @route   GET /api/contact/mine
+// @access  Private
+export const getMyContacts = async (req, res) => {
+  try {
+    const contacts = await Contact.find({ email: req.user.email })
+      .sort('-createdAt')
+      .limit(20);
+
+    res.status(200).json({
+      success: true,
+      count: contacts.length,
+      data: contacts,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error fetching your contacts' });
+  }
+};
+
 export const submitContact = async (req, res) => {
   try {
     const { name, email, service, message } = req.body;

@@ -3,6 +3,7 @@ import express from 'express';
 import {
   submitContact,
   getAllContacts,
+  getMyContacts,
   updateContactStatus,
   deleteContact,
 } from '../controllers/contactController.js';
@@ -23,6 +24,9 @@ router.post('/', contactLimiter,
   ),
   submitContact
 );
+
+// Authenticated user: see their own submissions
+router.get('/mine', protect, getMyContacts);
 
 // Admin only routes
 router.get('/', protect, admin, getAllContacts);

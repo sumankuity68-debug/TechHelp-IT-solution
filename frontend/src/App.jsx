@@ -19,9 +19,10 @@ import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 import VerifyEmailPage from './pages/auth/VerifyEmailPage';
 import UserDashboard from './pages/dashboard/UserDashboard';
 import ProfilePage from './pages/ProfilePage';
-import AdminDashboard from './pages/admin/admindashboard';
+import AdminDashboard from './pages/admin/AdminDashboard';
 
 import ProtectedRoute from './components/ui/ProtectedRoute';
+import NotFoundPage from './pages/NotFoundPage';
 
 function App() {
   return (
@@ -79,6 +80,9 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+
+              {/* 404 — catch all unmatched routes */}
+              <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </AuthProvider>
         </Router>
