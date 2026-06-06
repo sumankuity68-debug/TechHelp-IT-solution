@@ -4,14 +4,20 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import { useToast } from '../../context/ToastContext';
 
 export default function UserDashboard() {
   const { user, logout, token } = useAuth();
   const navigate = useNavigate();
+  const { showSuccess } = useToast();
 
   const [myContacts, setMyContacts]   = useState([]);
   const [loadingContacts, setLoadingContacts] = useState(true);
   const [fetchError, setFetchError]   = useState('');
+
+  const showUpgradeToast = () => {
+    showSuccess('Upgrade initiated! TechHelp Pro features are coming soon to your dashboard.');
+  };
 
   // ── Fetch the user's real contact submissions ──────────────────────────
   const fetchMyContacts = useCallback(async () => {
@@ -150,11 +156,118 @@ export default function UserDashboard() {
         />
       </div>
 
+      {/* ── Quick Actions Panel ── */}
+      <div style={{ ...card, padding: '1.5rem', marginBottom: '1.5rem' }}>
+        <h2 style={{ fontSize: 18, fontWeight: 600, color: 'var(--dash-text-primary)', margin: '0 0 1.25rem 0' }}>
+          Quick Actions
+        </h2>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          {/* New Inquiry Action */}
+          <button
+            onClick={() => navigate('/contact')}
+            style={{
+              background: 'var(--dash-btn-bg)',
+              border: 'var(--dash-btn-border)',
+              color: 'var(--dash-btn-text)',
+              padding: '12px 24px',
+              borderRadius: 12,
+              fontSize: 14,
+              fontWeight: 500,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s',
+            }}
+            onMouseOver={e => { e.currentTarget.style.background = 'var(--dash-btn-hover-bg)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+            onMouseOut={e => { e.currentTarget.style.background = 'var(--dash-btn-bg)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+          >
+            <span style={{ fontSize: 18 }}>📬</span>
+            New Inquiry
+          </button>
+
+          {/* Settings / Profile Action */}
+          <button
+            onClick={() => navigate('/profile')}
+            style={{
+              background: 'var(--dash-btn-bg)',
+              border: 'var(--dash-btn-border)',
+              color: 'var(--dash-btn-text)',
+              padding: '12px 24px',
+              borderRadius: 12,
+              fontSize: 14,
+              fontWeight: 500,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s',
+            }}
+            onMouseOver={e => { e.currentTarget.style.background = 'var(--dash-btn-hover-bg)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+            onMouseOut={e => { e.currentTarget.style.background = 'var(--dash-btn-bg)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+          >
+            <span style={{ fontSize: 18 }}>⚙️</span>
+            Profile Settings
+          </button>
+
+          {/* Scroll to Inquiries Action */}
+          <button
+            onClick={() => {
+              const el = document.getElementById('my-inquiries-section');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+            }}
+            style={{
+              background: 'var(--dash-btn-bg)',
+              border: 'var(--dash-btn-border)',
+              color: 'var(--dash-btn-text)',
+              padding: '12px 24px',
+              borderRadius: 12,
+              fontSize: 14,
+              fontWeight: 500,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s',
+            }}
+            onMouseOver={e => { e.currentTarget.style.background = 'var(--dash-btn-hover-bg)'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+            onMouseOut={e => { e.currentTarget.style.background = 'var(--dash-btn-bg)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+          >
+            <span style={{ fontSize: 18 }}>📊</span>
+            View My Inquiries
+          </button>
+
+          {/* Upgrade to Pro Action */}
+          <button
+            onClick={showUpgradeToast}
+            style={{
+              background: 'var(--dash-btn-pro-bg)',
+              border: 'var(--dash-btn-border)',
+              color: 'var(--dash-btn-pro-text)',
+              padding: '12px 24px',
+              borderRadius: 12,
+              fontSize: 14,
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s',
+            }}
+            onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.15)'; }}
+            onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+          >
+            <span style={{ fontSize: 18 }}>⭐</span>
+            Upgrade to Pro
+          </button>
+        </div>
+      </div>
+
       {/* ── Two-column layout ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
 
         {/* ── My Inquiries ── */}
-        <div style={{ ...card, padding: '1.5rem' }}>
+        <div id="my-inquiries-section" style={{ ...card, padding: '1.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
             <h2 style={{ fontSize: 18, fontWeight: 600, color: 'var(--dash-text-primary)', margin: 0 }}>
               My Inquiries

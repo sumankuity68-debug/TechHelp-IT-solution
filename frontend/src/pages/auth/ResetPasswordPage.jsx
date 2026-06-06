@@ -147,6 +147,9 @@ export default function ResetPasswordPage() {
                 e.target.style.background = '#f9fafb';
               }}
             />
+            <p style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>
+              Password must be at least 6 characters
+            </p>
           </div>
 
           <div style={{ marginBottom: 32 }}>

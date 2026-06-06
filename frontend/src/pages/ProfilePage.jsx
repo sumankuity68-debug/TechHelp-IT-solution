@@ -456,6 +456,9 @@ export default function ProfilePage() {
                   onFocus={e => e.target.style.borderColor = 'var(--accent-color)'}
                   onBlur={e => e.target.style.borderColor = 'var(--border)'}
                 />
+                <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                  Password must be at least 6 characters
+                </p>
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>

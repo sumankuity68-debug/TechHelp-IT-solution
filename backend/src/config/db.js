@@ -1,5 +1,13 @@
 
 import mongoose from 'mongoose';
+import dns from 'dns';
+
+// Configure custom DNS servers for Node's c-ares resolver to fix local querySrv ECONNREFUSED errors on some networks
+try {
+  dns.setServers(['8.8.8.8', '8.8.4.4']);
+} catch (err) {
+  console.warn('⚠️ Could not set custom DNS servers, relying on system resolver:', err.message);
+}
 
 const connectDB = async () => {
   try {

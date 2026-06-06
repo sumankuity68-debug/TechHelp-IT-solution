@@ -411,6 +411,14 @@ export const login = async (req, res) => {
       });
     }
 
+    // Check if user has a password set (e.g., they registered via Google)
+    if (!user.password) {
+      return res.status(400).json({
+        success: false,
+        message: 'This account was created using Google. Please log in with Google.',
+      });
+    }
+
     const isPasswordMatch = await user.comparePassword(password);
     if (!isPasswordMatch) {
       return res.status(401).json({
@@ -968,6 +976,14 @@ export const changePassword = async (req, res) => {
 
     // Fetch user and explicitly select password field
     const user = await User.findById(req.user.id).select('+password');
+
+    // Check if user has a password set (e.g., they registered via Google)
+    if (!user.password) {
+      return res.status(400).json({
+        success: false,
+        message: 'This account does not have a password set. Please use the Forgot Password flow to set a password.',
+      });
+    }
 
     const isMatch = await user.comparePassword(currentPassword);
     if (!isMatch) {

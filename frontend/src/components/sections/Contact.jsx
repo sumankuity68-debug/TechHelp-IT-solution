@@ -295,12 +295,25 @@ export default function Contact() {
                   </label>
                   <textarea
                     name="message" required rows={5}
+                    maxLength={2000}
                     placeholder="Tell us about your project..."
                     value={form.message} onChange={handleChange}
                     style={{ ...inputStyle, resize: 'vertical' }}
                     onFocus={e => e.target.style.borderColor = 'var(--accent-color)'}
                     onBlur={e => e.target.style.borderColor = 'var(--border-color)'}
                   />
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: 12,
+                    color: form.message.length >= 2000 ? '#ef4444' : 'var(--text-secondary)',
+                    marginTop: 6,
+                    fontFamily: 'DM Sans, sans-serif',
+                    transition: 'color 0.2s ease',
+                  }}>
+                    <span>Max 2000 characters</span>
+                    <span>{form.message.length} / 2000</span>
+                  </div>
                 </div>
 
                 <button

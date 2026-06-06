@@ -13,6 +13,49 @@ import {
   viewportOnce,
 } from '../../utils/animations';
 
+function AnimatedCounter({ numStr, duration = 1500 }) {
+  const [count, setCount] = useState(0);
+  const match = numStr.match(/^(\d+)(.*)$/);
+
+  useEffect(() => {
+    if (!match) return;
+    const end = parseInt(match[1], 10);
+    let startTimestamp = null;
+    let animationFrameId;
+
+    const step = (timestamp) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+      // Ease out quad
+      const easeOutProgress = 1 - (1 - progress) * (1 - progress);
+      setCount(Math.floor(easeOutProgress * end));
+
+      if (progress < 1) {
+        animationFrameId = window.requestAnimationFrame(step);
+      } else {
+        setCount(end);
+      }
+    };
+
+    animationFrameId = window.requestAnimationFrame(step);
+    return () => {
+      if (animationFrameId) {
+        window.cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [numStr, duration]);
+
+  if (!match) return <span style={{ color: 'var(--text-primary)' }}>{numStr}</span>;
+
+  const suffixPart = match[2];
+  return (
+    <>
+      <span style={{ color: 'var(--accent-color)' }}>{count}</span>
+      <span style={{ color: 'var(--text-primary)' }}>{suffixPart}</span>
+    </>
+  );
+}
+
 export default function Hero() {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
@@ -26,19 +69,7 @@ export default function Hero() {
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
 
-  const formatStatNum = (numStr) => {
-    const match = numStr.match(/^(\d+)(.*)$/);
-    if (match) {
-      const [_, numberPart, suffixPart] = match;
-      return (
-        <>
-          <span style={{ color: 'var(--accent-color)' }}>{numberPart}</span>
-          <span style={{ color: 'var(--text-primary)' }}>{suffixPart}</span>
-        </>
-      );
-    }
-    return <span style={{ color: 'var(--text-primary)' }}>{numStr}</span>;
-  };
+  // Removed static formatStatNum; animations are now handled by the AnimatedCounter component
 
   return (
     <section style={{
@@ -156,7 +187,7 @@ export default function Hero() {
                   color: 'var(--text-primary)', letterSpacing: '-1px',
                   lineHeight: 1, marginBottom: 8,
                 }}>
-                  {formatStatNum(stat.num)}
+                  <AnimatedCounter numStr={stat.num} />
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
                   {stat.label}
