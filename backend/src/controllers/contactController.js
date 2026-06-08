@@ -61,7 +61,7 @@ export const getAllContacts = async (req, res) => {
 
     // Build filter
     const filter = {};
-    if (status && ['pending', 'contacted', 'closed'].includes(status)) {
+    if (status && ['new', 'read', 'resolved'].includes(status)) {
       filter.status = status;
     }
     if (search) {
@@ -101,7 +101,7 @@ export const updateContactStatus = async (req, res) => {
   try {
     const { status } = req.body;
 
-    if (!['pending', 'contacted', 'closed'].includes(status)) {
+    if (!['new', 'read', 'resolved'].includes(status)) {
       return res.status(400).json({
         success: false,
         message: 'Invalid status value',

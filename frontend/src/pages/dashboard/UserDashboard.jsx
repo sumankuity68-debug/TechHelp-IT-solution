@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { useToast } from '../../context/ToastContext';
+import { contactAPI } from '../../utils/api';
 
 export default function UserDashboard() {
   const { user, logout, token } = useAuth();
@@ -14,6 +15,7 @@ export default function UserDashboard() {
   const [myContacts, setMyContacts]   = useState([]);
   const [loadingContacts, setLoadingContacts] = useState(true);
   const [fetchError, setFetchError]   = useState('');
+  const [expandedCardId, setExpandedCardId] = useState(null);
 
   const showUpgradeToast = () => {
     showSuccess('Upgrade initiated! TechHelp Pro features are coming soon to your dashboard.');
@@ -25,23 +27,20 @@ export default function UserDashboard() {
     setLoadingContacts(true);
     setFetchError('');
     try {
-      const res = await fetch('/api/contact/mine', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (data.success) {
-        setMyContacts(data.data);
-      } else {
-        setFetchError(data.message || 'Failed to load your inquiries');
-      }
-    } catch {
-      setFetchError('Network error. Please try again.');
+      const data = await contactAPI.getMy();
+      setMyContacts(data.data);
+    } catch (err) {
+      setFetchError(err.message || 'Failed to load your inquiries');
     } finally {
       setLoadingContacts(false);
     }
   }, [token]);
 
   useEffect(() => { fetchMyContacts(); }, [fetchMyContacts]);
+
+  const toggleExpandCard = (id) => {
+    setExpandedCardId(prev => (prev === id ? null : id));
+  };
 
   const handleLogout = () => {
     logout();
@@ -303,26 +302,90 @@ export default function UserDashboard() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {myContacts.map(c => {
                 const st = statusStyle(c.status);
+                const isExpanded = expandedCardId === c._id;
                 return (
                   <div
                     key={c._id}
-                    style={{ background: 'var(--dash-list-item-bg)', borderRadius: 10, padding: '14px 16px', transition: 'background 0.2s' }}
-                    onMouseOver={e => e.currentTarget.style.background = 'var(--dash-list-item-hover)'}
-                    onMouseOut={e => e.currentTarget.style.background = 'var(--dash-list-item-bg)'}
+                    onClick={() => toggleExpandCard(c._id)}
+                    style={{
+                      background: 'var(--dash-list-item-bg)',
+                      borderRadius: 10,
+                      padding: '14px 16px',
+                      transition: 'all 0.2s ease-in-out',
+                      cursor: 'pointer',
+                      border: isExpanded ? '1px solid var(--accent-color)' : '1px solid transparent',
+                      boxShadow: isExpanded ? '0 4px 12px rgba(79, 70, 229, 0.08)' : 'none'
+                    }}
+                    onMouseOver={e => {
+                      if (!isExpanded) e.currentTarget.style.background = 'var(--dash-list-item-hover)';
+                    }}
+                    onMouseOut={e => {
+                      if (!isExpanded) e.currentTarget.style.background = 'var(--dash-list-item-bg)';
+                    }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--dash-text-primary)', margin: '0 0 4px', textTransform: 'capitalize' }}>
                           {c.service || 'General Inquiry'}
                         </p>
-                        <p style={{ fontSize: 12, color: 'var(--dash-text-muted)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <p style={{
+                          fontSize: 12,
+                          color: isExpanded ? 'var(--dash-text-secondary)' : 'var(--dash-text-muted)',
+                          margin: 0,
+                          overflow: isExpanded ? 'visible' : 'hidden',
+                          textOverflow: isExpanded ? 'clip' : 'ellipsis',
+                          whiteSpace: isExpanded ? 'pre-wrap' : 'nowrap',
+                          lineHeight: 1.5
+                        }}>
                           {c.message}
                         </p>
                       </div>
-                      <span style={{ fontSize: 11, fontWeight: 500, padding: '3px 10px', borderRadius: 20, background: st.bg, color: st.color, flexShrink: 0 }}>
-                        {st.label}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                        <span style={{ fontSize: 11, fontWeight: 500, padding: '3px 10px', borderRadius: 20, background: st.bg, color: st.color }}>
+                          {st.label}
+                        </span>
+                        <span style={{ fontSize: 12, color: 'var(--dash-text-muted)', transition: 'transform 0.2s', display: 'inline-block', transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                          ▼
+                        </span>
+                      </div>
                     </div>
+                    
+                    {isExpanded && (
+                      <div
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                          marginTop: '12px',
+                          paddingTop: '12px',
+                          borderTop: '1px solid var(--border-color)',
+                          fontSize: 12,
+                          color: 'var(--dash-text-secondary)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px',
+                        }}
+                      >
+                        <div>
+                          <strong>From:</strong> {c.name} ({c.email})
+                        </div>
+                        {c.subject && (
+                          <div>
+                            <strong>Subject:</strong> {c.subject}
+                          </div>
+                        )}
+                        <div style={{
+                          marginTop: '4px',
+                          padding: '10px',
+                          background: 'rgba(0, 0, 0, 0.02)',
+                          borderRadius: '6px',
+                          borderLeft: '3px solid var(--accent-color)',
+                        }}>
+                          <p style={{ fontSize: 12, color: 'var(--dash-text-primary)', whiteSpace: 'pre-wrap', margin: 0 }}>
+                            {c.message}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                     <p style={{ fontSize: 11, color: 'var(--dash-text-muted)', margin: '8px 0 0' }}>
                       {new Date(c.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </p>

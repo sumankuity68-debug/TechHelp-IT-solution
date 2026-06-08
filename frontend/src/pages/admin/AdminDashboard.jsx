@@ -1,9 +1,10 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useToast } from '../../context/ToastContext';
+import usePagination from '../../hooks/usePagination';
+import { contactAPI, usersAPI, servicesAPI } from '../../utils/api';
 
 export default function AdminDashboard() {
   const { user, logout, token } = useAuth();
@@ -18,10 +19,19 @@ export default function AdminDashboard() {
     totalServices: 0,
     pendingInquiries: 0,
   });
-  const [users, setUsers] = useState([]);
-  const [contacts, setContacts] = useState([]);
+  const [recentContacts, setRecentContacts] = useState([]);
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // usePagination custom hook for inquiries (contacts)
+  const inquiriesPagination = usePagination(contactAPI.getAll, {
+    initialLimit: 10
+  });
+
+  // usePagination custom hook for users
+  const usersPagination = usePagination(usersAPI.getAll, {
+    initialLimit: 10
+  });
 
   // Service modal states
   const [showServiceModal, setShowServiceModal] = useState(false);
@@ -42,6 +52,7 @@ export default function AdminDashboard() {
     email: '',
     role: 'user',
   });
+
   useEffect(() => {
     fetchDashboardData();
   }, []);
@@ -49,37 +60,28 @@ export default function AdminDashboard() {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-     
-      const contactRes = await fetch('http://localhost:5000/api/contact', {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      const contactData = await contactRes.json();
-
-      const servicesRes = await fetch('http://localhost:5000/api/services?all=true');
-      const servicesData = await servicesRes.json();
-
-      const usersRes = await fetch('http://localhost:5000/api/users', {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      const usersData = await usersRes.json();
+      const [contactData, servicesData, usersData] = await Promise.all([
+        contactAPI.getAll({ limit: 100 }), // Get enough entries to compute stats/recent
+        servicesAPI.getAll(),
+        usersAPI.getAll({ limit: 1 }), // Just query for total user count
+      ]);
 
       if (contactData.success) {
-        setContacts(contactData.data);
+        setRecentContacts(contactData.data.slice(0, 5));
         setStats(prev => ({
           ...prev,
-          totalContacts: contactData.count,
-          pendingInquiries: contactData.data.filter(c => c.status === 'pending').length,
+          totalContacts: contactData.pagination?.total || contactData.count || contactData.data.length,
+          pendingInquiries: contactData.data.filter(c => c.status === 'pending' || c.status === 'new').length,
         }));
       }
 
       if (servicesData.success) {
         setServices(servicesData.data);
-        setStats(prev => ({ ...prev, totalServices: servicesData.count }));
+        setStats(prev => ({ ...prev, totalServices: servicesData.count || servicesData.data.length }));
       }
 
       if (usersData.success) {
-        setUsers(usersData.data);
-        setStats(prev => ({ ...prev, totalUsers: usersData.count }));
+        setStats(prev => ({ ...prev, totalUsers: usersData.pagination?.total || usersData.count }));
       }
 
     } catch (error) {
@@ -96,93 +98,50 @@ export default function AdminDashboard() {
 
   const handleDeleteContact = async (id) => {
     if (!window.confirm('Are you sure you want to delete this inquiry?')) return;
-    
     try {
-      const res = await fetch(`http://localhost:5000/api/contact/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-
-      if (res.ok) {
-        setContacts(contacts.filter(c => c._id !== id));
-        setStats(prev => ({ ...prev, totalContacts: prev.totalContacts - 1 }));
-        showSuccess('Inquiry deleted successfully');
-      }
+      await contactAPI.delete(id);
+      showSuccess('Inquiry deleted successfully');
+      inquiriesPagination.refresh();
+      fetchDashboardData();
     } catch (error) {
       console.error('Error deleting contact:', error);
-      showError('Failed to delete inquiry');
+      showError(error.message || 'Failed to delete inquiry');
     }
   };
 
   const handleUpdateStatus = async (id, newStatus) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/contact/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (res.ok) {
-        setContacts(contacts.map(c => 
-          c._id === id ? { ...c, status: newStatus } : c
-        ));
-        showSuccess('Status updated successfully');
-      }
+      await contactAPI.updateStatus(id, newStatus);
+      showSuccess('Status updated successfully');
+      inquiriesPagination.refresh();
+      fetchDashboardData();
     } catch (error) {
       console.error('Error updating status:', error);
-      showError('Failed to update status');
+      showError(error.message || 'Failed to update status');
     }
   };
 
   const handleDeleteUser = async (id) => {
     if (!window.confirm('Are you sure you want to delete this user?')) return;
-    
     try {
-      const res = await fetch(`http://localhost:5000/api/users/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setUsers(users.filter(u => u._id !== id));
-        setStats(prev => ({ ...prev, totalUsers: Math.max(0, prev.totalUsers - 1) }));
-        showSuccess('User deleted successfully');
-      } else {
-        showError(data.message || 'Failed to delete user');
-      }
+      await usersAPI.delete(id);
+      showSuccess('User deleted successfully');
+      usersPagination.refresh();
+      fetchDashboardData();
     } catch (error) {
       console.error('Error deleting user:', error);
-      showError('Failed to delete user');
+      showError(error.message || 'Failed to delete user');
     }
   };
 
   const handleUpdateUserRole = async (id, newRole) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/users/${id}/role`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ role: newRole }),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setUsers(users.map(u => 
-          u._id === id ? { ...u, role: newRole } : u
-        ));
-        showSuccess('User role updated successfully');
-      } else {
-        showError(data.message || 'Failed to update user role');
-      }
+      await usersAPI.updateRole(id, newRole);
+      showSuccess('User role updated successfully');
+      usersPagination.refresh();
     } catch (error) {
       console.error('Error updating user role:', error);
-      showError('Failed to update user role');
+      showError(error.message || 'Failed to update user role');
     }
   };
 
@@ -199,26 +158,13 @@ export default function AdminDashboard() {
   const handleSaveUser = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(`http://localhost:5000/api/users/${editingUser._id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(userForm),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setUsers(users.map(u => u._id === editingUser._id ? data.data : u));
-        showSuccess('User updated successfully');
-        setShowUserModal(false);
-      } else {
-        showError(data.message || 'Failed to save user');
-      }
+      await usersAPI.update(editingUser._id, userForm);
+      showSuccess('User updated successfully');
+      setShowUserModal(false);
+      usersPagination.refresh();
     } catch (error) {
       console.error('Error saving user:', error);
-      showError('Failed to save user');
+      showError(error.message || 'Failed to save user');
     }
   };
 
@@ -344,21 +290,12 @@ export default function AdminDashboard() {
   const handleDeleteService = async (id) => {
     if (!window.confirm('Are you sure you want to delete this service?')) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/services/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setServices(services.filter(s => s._id !== id));
-        setStats(prev => ({ ...prev, totalServices: Math.max(0, prev.totalServices - 1) }));
-        showSuccess('Service deleted successfully');
-      } else {
-        showError(data.message || 'Failed to delete service');
-      }
+      await servicesAPI.delete(id);
+      showSuccess('Service deleted successfully');
+      fetchDashboardData();
     } catch (error) {
       console.error('Error deleting service:', error);
-      showError('Failed to delete service');
+      showError(error.message || 'Failed to delete service');
     }
   };
 
@@ -396,38 +333,19 @@ export default function AdminDashboard() {
       isActive: serviceForm.isActive,
     };
 
-    const url = editingService 
-      ? `http://localhost:5000/api/services/${editingService._id}` 
-      : 'http://localhost:5000/api/services';
-    const method = editingService ? 'PUT' : 'POST';
-
     try {
-      const res = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        if (editingService) {
-          setServices(services.map(s => s._id === editingService._id ? data.data : s));
-          showSuccess('Service updated successfully');
-        } else {
-          setServices([...services, data.data].sort((a, b) => (a.num || '').localeCompare(b.num || '')));
-          setStats(prev => ({ ...prev, totalServices: prev.totalServices + 1 }));
-          showSuccess('Service created successfully');
-        }
-        setShowServiceModal(false);
+      if (editingService) {
+        await servicesAPI.update(editingService._id, payload);
+        showSuccess('Service updated successfully');
       } else {
-        showError(data.message || 'Failed to save service');
+        await servicesAPI.create(payload);
+        showSuccess('Service created successfully');
       }
+      setShowServiceModal(false);
+      fetchDashboardData();
     } catch (error) {
       console.error('Error saving service:', error);
-      showError('Failed to save service');
+      showError(error.message || 'Failed to save service');
     }
   };
 
@@ -681,97 +599,130 @@ export default function AdminDashboard() {
             {activeTab === 'inquiries' && (
               <div>
                 <h2 style={{ color: 'var(--dash-text-primary)', fontSize: 22, marginBottom: '1.5rem', transition: 'color 0.3s ease' }}>
-                  Contact Inquiries ({contacts.length})
+                  Contact Inquiries ({inquiriesPagination.total})
                 </h2>
 
-                {contacts.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--dash-text-muted)' }}>
-                    <p style={{ fontSize: 18, marginBottom: '8px' }}>📭</p>
-                    <p>No inquiries yet</p>
-                  </div>
-                ) : (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <input
+                    type="text"
+                    placeholder="Search inquiries by name, email, or service..."
+                    value={inquiriesPagination.search}
+                    onChange={(e) => inquiriesPagination.setSearch(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      background: 'var(--dash-list-item-bg)',
+                      border: 'var(--dash-card-border)',
+                      borderRadius: 10,
+                      color: 'var(--dash-text-primary)',
+                      fontSize: 14,
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                {inquiriesPagination.loading && inquiriesPagination.data.length === 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {contacts.map(contact => (
-                      <div
-                        key={contact._id}
-                        style={{
-                          background: 'var(--dash-card-bg)',
-                          border: 'var(--dash-card-border)',
-                          borderRadius: 12,
-                          padding: '1.5rem',
-                          transition: 'all 0.3s ease',
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                          <div>
-                            <h3 style={{ color: 'var(--dash-text-primary)', fontSize: 16, margin: '0 0 4px 0', transition: 'color 0.3s ease' }}>
-                              {contact.name}
-                            </h3>
-                            <p style={{ color: 'var(--dash-text-secondary)', fontSize: 13, margin: 0, transition: 'color 0.3s ease' }}>
-                              {contact.email}
-                            </p>
-                          </div>
-                          <div style={{ textAlign: 'right' }}>
-                            <select
-                              value={contact.status}
-                              onChange={(e) => handleUpdateStatus(contact._id, e.target.value)}
-                              style={{
-                                background: 'var(--bg-secondary)',
-                                border: '1px solid var(--border-color)',
-                                color: 'var(--text-primary)',
-                                padding: '6px 12px',
-                                borderRadius: 6,
-                                fontSize: 12,
-                                cursor: 'pointer',
-                                marginBottom: '8px',
-                                outline: 'none',
-                              }}
-                            >
-                              <option value="pending" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Pending</option>
-                              <option value="contacted" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Contacted</option>
-                              <option value="closed" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Closed</option>
-                            </select>
-                            <p style={{ fontSize: 11, color: 'var(--dash-text-muted)', margin: 0, transition: 'color 0.3s ease' }}>
-                              {new Date(contact.createdAt).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div style={{
-                          background: 'var(--dash-list-item-bg)',
-                          padding: '12px',
-                          borderRadius: 8,
-                          marginBottom: '12px',
-                          transition: 'all 0.3s ease',
-                        }}>
-                          <p style={{ color: 'var(--dash-text-secondary)', fontSize: 13, margin: '0 0 8px 0', transition: 'color 0.3s ease' }}>
-                            <strong style={{ color: 'var(--dash-text-primary)', transition: 'color 0.3s ease' }}>Service:</strong> {contact.service}
-                          </p>
-                          <p style={{ color: 'var(--dash-text-secondary)', fontSize: 13, margin: 0, transition: 'color 0.3s ease' }}>
-                            <strong style={{ color: 'var(--dash-text-primary)', transition: 'color 0.3s ease' }}>Message:</strong> {contact.message}
-                          </p>
-                        </div>
-
-                        <button
-                          onClick={() => handleDeleteContact(contact._id)}
-                          style={{
-                            background: 'rgba(239, 68, 68, 0.1)',
-                            border: '1px solid rgba(239, 68, 68, 0.3)',
-                            color: '#ef4444',
-                            padding: '8px 16px',
-                            borderRadius: 6,
-                            fontSize: 13,
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                          }}
-                          onMouseOver={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'}
-                          onMouseOut={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
-                        >
-                          🗑️ Delete
-                        </button>
+                    {[1, 2, 3].map(i => (
+                      <div key={i} style={{ background: 'var(--dash-card-bg)', border: 'var(--dash-card-border)', borderRadius: 12, padding: '1.5rem' }}>
+                        <div className="skeleton" style={{ width: '40%', height: 16, marginBottom: 8 }} />
+                        <div className="skeleton" style={{ width: '60%', height: 12, marginBottom: 12 }} />
+                        <div className="skeleton" style={{ width: '80%', height: 14 }} />
                       </div>
                     ))}
                   </div>
+                ) : inquiriesPagination.data.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--dash-text-muted)' }}>
+                    <p style={{ fontSize: 18, marginBottom: '8px' }}>📭</p>
+                    <p>No inquiries found</p>
+                  </div>
+                ) : (
+                  <>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', opacity: inquiriesPagination.loading ? 0.6 : 1, transition: 'opacity 0.2s' }}>
+                      {inquiriesPagination.data.map(contact => (
+                        <div
+                          key={contact._id}
+                          style={{
+                            background: 'var(--dash-card-bg)',
+                            border: 'var(--dash-card-border)',
+                            borderRadius: 12,
+                            padding: '1.5rem',
+                            transition: 'all 0.3s ease',
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                            <div>
+                              <h3 style={{ color: 'var(--dash-text-primary)', fontSize: 16, margin: '0 0 4px 0', transition: 'color 0.3s ease' }}>
+                                {contact.name}
+                              </h3>
+                              <p style={{ color: 'var(--dash-text-secondary)', fontSize: 13, margin: 0, transition: 'color 0.3s ease' }}>
+                                {contact.email}
+                              </p>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <select
+                                value={contact.status}
+                                onChange={(e) => handleUpdateStatus(contact._id, e.target.value)}
+                                style={{
+                                  background: 'var(--bg-secondary)',
+                                  border: '1px solid var(--border-color)',
+                                  color: 'var(--text-primary)',
+                                  padding: '6px 12px',
+                                  borderRadius: 6,
+                                  fontSize: 12,
+                                  cursor: 'pointer',
+                                  marginBottom: '8px',
+                                  outline: 'none',
+                                }}
+                              >
+                                <option value="new" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>New</option>
+                                <option value="read" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>In Review</option>
+                                <option value="resolved" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Resolved</option>
+                              </select>
+                              <p style={{ fontSize: 11, color: 'var(--dash-text-muted)', margin: 0, transition: 'color 0.3s ease' }}>
+                                {new Date(contact.createdAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div style={{
+                            background: 'var(--dash-list-item-bg)',
+                            padding: '12px',
+                            borderRadius: 8,
+                            marginBottom: '12px',
+                            transition: 'all 0.3s ease',
+                          }}>
+                            <p style={{ color: 'var(--dash-text-secondary)', fontSize: 13, margin: '0 0 8px 0', transition: 'color 0.3s ease' }}>
+                              <strong style={{ color: 'var(--dash-text-primary)', transition: 'color 0.3s ease' }}>Service:</strong> {contact.service}
+                            </p>
+                            <p style={{ color: 'var(--dash-text-secondary)', fontSize: 13, margin: 0, transition: 'color 0.3s ease' }}>
+                              <strong style={{ color: 'var(--dash-text-primary)', transition: 'color 0.3s ease' }}>Message:</strong> {contact.message}
+                            </p>
+                          </div>
+
+                          <button
+                            onClick={() => handleDeleteContact(contact._id)}
+                            style={{
+                              background: 'rgba(239, 68, 68, 0.1)',
+                              border: '1px solid rgba(239, 68, 68, 0.3)',
+                              color: '#ef4444',
+                              padding: '8px 16px',
+                              borderRadius: 6,
+                              fontSize: 13,
+                              cursor: 'pointer',
+                              transition: 'all 0.2s',
+                            }}
+                            onMouseOver={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)'}
+                            onMouseOut={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
+                          >
+                            🗑️ Delete
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <PaginationControls pagination={inquiriesPagination} />
+                  </>
                 )}
               </div>
             )}
@@ -918,10 +869,44 @@ export default function AdminDashboard() {
             {activeTab === 'users' && (
               <div>
                 <h2 style={{ color: 'var(--dash-text-primary)', fontSize: 22, marginBottom: '1.5rem', transition: 'color 0.3s ease' }}>
-                  User Management ({users.length})
+                  User Management ({usersPagination.total})
                 </h2>
 
-                {users.length === 0 ? (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <input
+                    type="text"
+                    placeholder="Search users by name or email..."
+                    value={usersPagination.search}
+                    onChange={(e) => usersPagination.setSearch(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      background: 'var(--dash-list-item-bg)',
+                      border: 'var(--dash-card-border)',
+                      borderRadius: 10,
+                      color: 'var(--dash-text-primary)',
+                      fontSize: 14,
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+
+                {usersPagination.loading && usersPagination.data.length === 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {[1, 2, 3].map(i => (
+                      <div key={i} style={{ background: 'var(--dash-card-bg)', border: 'var(--dash-card-border)', borderRadius: 12, padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                          <div className="skeleton" style={{ width: '48px', height: '48px', borderRadius: '50%' }} />
+                          <div>
+                            <div className="skeleton" style={{ width: '120px', height: '16px', marginBottom: '8px' }} />
+                            <div className="skeleton" style={{ width: '180px', height: '13px' }} />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : usersPagination.data.length === 0 ? (
                   <div style={{
                     textAlign: 'center',
                     padding: '3rem',
@@ -936,141 +921,144 @@ export default function AdminDashboard() {
                     </p>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {users.map(u => (
-                      <div
-                        key={u._id}
-                        className="dash-user-row"
-                        style={{
-                          background: 'var(--dash-card-bg)',
-                          border: 'var(--dash-card-border)',
-                          borderRadius: 12,
-                          padding: '1.25rem 1.5rem',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          gap: '1.5rem',
-                          flexWrap: 'wrap',
-                          transition: 'all 0.3s ease',
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', minWidth: '240px' }}>
-                          <div style={{
-                            width: '48px',
-                            height: '48px',
-                            borderRadius: '50%',
-                            background: 'var(--dash-avatar-bg)',
-                            color: 'var(--dash-text-primary)',
+                  <>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', opacity: usersPagination.loading ? 0.6 : 1, transition: 'opacity 0.2s' }}>
+                      {usersPagination.data.map(u => (
+                        <div
+                          key={u._id}
+                          className="dash-user-row"
+                          style={{
+                            background: 'var(--dash-card-bg)',
+                            border: 'var(--dash-card-border)',
+                            borderRadius: 12,
+                            padding: '1.25rem 1.5rem',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '16px',
-                            fontWeight: '700',
-                            border: 'var(--dash-card-border)',
-                          }}>
-                            {u.name ? u.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'U'}
+                            justifyContent: 'space-between',
+                            gap: '1.5rem',
+                            flexWrap: 'wrap',
+                            transition: 'all 0.3s ease',
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', minWidth: '240px' }}>
+                            <div style={{
+                              width: '48px',
+                              height: '48px',
+                              borderRadius: '50%',
+                              background: 'var(--dash-avatar-bg)',
+                              color: 'var(--dash-text-primary)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '16px',
+                              fontWeight: '700',
+                              border: 'var(--dash-card-border)',
+                            }}>
+                              {u.name ? u.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'U'}
+                            </div>
+                            <div>
+                              <h3 style={{ color: 'var(--dash-text-primary)', fontSize: 16, margin: '0 0 4px 0', fontWeight: '600' }}>
+                                {u.name} {u._id === user?.id && <span style={{ fontSize: '10px', background: 'rgba(79, 70, 229, 0.2)', color: 'var(--dash-btn-text)', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px' }}>You</span>}
+                              </h3>
+                              <p style={{ color: 'var(--dash-text-secondary)', fontSize: 13, margin: 0 }}>
+                                {u.email}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <h3 style={{ color: 'var(--dash-text-primary)', fontSize: 16, margin: '0 0 4px 0', fontWeight: '600' }}>
-                              {u.name} {u._id === user?.id && <span style={{ fontSize: '10px', background: 'rgba(79, 70, 229, 0.2)', color: 'var(--dash-btn-text)', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px' }}>You</span>}
-                            </h3>
-                            <p style={{ color: 'var(--dash-text-secondary)', fontSize: 13, margin: 0 }}>
-                              {u.email}
-                            </p>
-                          </div>
-                        </div>
 
-                        <div className="dash-user-actions" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
-                          <div style={{ minWidth: '120px' }}>
-                            <p style={{ fontSize: 11, color: 'var(--dash-text-muted)', margin: '0 0 4px 0' }}>Joined On</p>
-                            <p style={{ color: 'var(--dash-text-primary)', fontSize: 13, margin: 0 }}>
-                              {new Date(u.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
-                            </p>
-                          </div>
+                          <div className="dash-user-actions" style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+                            <div style={{ minWidth: '120px' }}>
+                              <p style={{ fontSize: 11, color: 'var(--dash-text-muted)', margin: '0 0 4px 0' }}>Joined On</p>
+                              <p style={{ color: 'var(--dash-text-primary)', fontSize: 13, margin: 0 }}>
+                                {new Date(u.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                              </p>
+                            </div>
 
-                          <div>
-                            <p style={{ fontSize: 11, color: 'var(--dash-text-muted)', margin: '0 0 4px 0' }}>Role</p>
-                            <select
-                              value={u.role}
+                            <div>
+                              <p style={{ fontSize: 11, color: 'var(--dash-text-muted)', margin: '0 0 4px 0' }}>Role</p>
+                              <select
+                                value={u.role}
+                                disabled={u._id === user?.id}
+                                onChange={(e) => handleUpdateUserRole(u._id, e.target.value)}
+                                style={{
+                                  background: 'var(--bg-secondary)',
+                                  border: '1px solid var(--border-color)',
+                                  color: 'var(--text-primary)',
+                                  padding: '6px 12px',
+                                  borderRadius: 6,
+                                  fontSize: 13,
+                                  cursor: u._id === user?.id ? 'not-allowed' : 'pointer',
+                                  outline: 'none',
+                                  opacity: u._id === user?.id ? 0.7 : 1,
+                                }}
+                              >
+                                <option value="user" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>User</option>
+                                <option value="admin" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Admin</option>
+                              </select>
+                            </div>
+
+                            <button
+                              onClick={() => handleOpenEditUser(u)}
                               disabled={u._id === user?.id}
-                              onChange={(e) => handleUpdateUserRole(u._id, e.target.value)}
                               style={{
-                                background: 'var(--bg-secondary)',
-                                border: '1px solid var(--border-color)',
-                                color: 'var(--text-primary)',
-                                padding: '6px 12px',
+                                background: u._id === user?.id ? 'rgba(79, 70, 229, 0.05)' : 'var(--dash-btn-bg)',
+                                border: 'var(--dash-btn-border)',
+                                color: 'var(--dash-btn-text)',
+                                padding: '8px 16px',
                                 borderRadius: 6,
                                 fontSize: 13,
                                 cursor: u._id === user?.id ? 'not-allowed' : 'pointer',
-                                outline: 'none',
-                                opacity: u._id === user?.id ? 0.7 : 1,
+                                opacity: u._id === user?.id ? 0.5 : 1,
+                                transition: 'all 0.2s',
+                                marginRight: '8px'
+                              }}
+                              onMouseOver={e => {
+                                if (u._id !== user?.id) {
+                                  e.currentTarget.style.background = 'var(--dash-btn-hover-bg)';
+                                }
+                              }}
+                              onMouseOut={e => {
+                                if (u._id !== user?.id) {
+                                  e.currentTarget.style.background = 'var(--dash-btn-bg)';
+                                }
                               }}
                             >
-                              <option value="user" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>User</option>
-                              <option value="admin" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Admin</option>
-                            </select>
+                              ✏️ Edit
+                            </button>
+
+                            <button
+                              onClick={() => handleDeleteUser(u._id)}
+                              disabled={u._id === user?.id}
+                              style={{
+                                background: u._id === user?.id ? 'rgba(239, 68, 68, 0.05)' : 'rgba(239, 68, 68, 0.1)',
+                                border: '1px solid rgba(239, 68, 68, 0.3)',
+                                color: '#ef4444',
+                                padding: '8px 16px',
+                                borderRadius: 6,
+                                fontSize: 13,
+                                cursor: u._id === user?.id ? 'not-allowed' : 'pointer',
+                                opacity: u._id === user?.id ? 0.5 : 1,
+                                transition: 'all 0.2s',
+                              }}
+                              onMouseOver={e => {
+                                if (u._id !== user?.id) {
+                                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
+                                }
+                              }}
+                              onMouseOut={e => {
+                                if (u._id !== user?.id) {
+                                  e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                                }
+                              }}
+                            >
+                              🗑️ Delete
+                            </button>
                           </div>
-
-                          <button
-                            onClick={() => handleOpenEditUser(u)}
-                            disabled={u._id === user?.id}
-                            style={{
-                              background: u._id === user?.id ? 'rgba(79, 70, 229, 0.05)' : 'var(--dash-btn-bg)',
-                              border: 'var(--dash-btn-border)',
-                              color: 'var(--dash-btn-text)',
-                              padding: '8px 16px',
-                              borderRadius: 6,
-                              fontSize: 13,
-                              cursor: u._id === user?.id ? 'not-allowed' : 'pointer',
-                              opacity: u._id === user?.id ? 0.5 : 1,
-                              transition: 'all 0.2s',
-                              marginRight: '8px'
-                            }}
-                            onMouseOver={e => {
-                              if (u._id !== user?.id) {
-                                e.currentTarget.style.background = 'var(--dash-btn-hover-bg)';
-                              }
-                            }}
-                            onMouseOut={e => {
-                              if (u._id !== user?.id) {
-                                e.currentTarget.style.background = 'var(--dash-btn-bg)';
-                              }
-                            }}
-                          >
-                            ✏️ Edit
-                          </button>
-
-                          <button
-                            onClick={() => handleDeleteUser(u._id)}
-                            disabled={u._id === user?.id}
-                            style={{
-                              background: u._id === user?.id ? 'rgba(239, 68, 68, 0.05)' : 'rgba(239, 68, 68, 0.1)',
-                              border: '1px solid rgba(239, 68, 68, 0.3)',
-                              color: '#ef4444',
-                              padding: '8px 16px',
-                              borderRadius: 6,
-                              fontSize: 13,
-                              cursor: u._id === user?.id ? 'not-allowed' : 'pointer',
-                              opacity: u._id === user?.id ? 0.5 : 1,
-                              transition: 'all 0.2s',
-                            }}
-                            onMouseOver={e => {
-                              if (u._id !== user?.id) {
-                                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
-                              }
-                            }}
-                            onMouseOut={e => {
-                              if (u._id !== user?.id) {
-                                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
-                              }
-                            }}
-                          >
-                            🗑️ Delete
-                          </button>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                    <PaginationControls pagination={usersPagination} />
+                  </>
                 )}
               </div>
             )}
@@ -1187,7 +1175,7 @@ export default function AdminDashboard() {
               <h3 style={{ fontSize: 20, fontWeight: 700, color: 'var(--dash-text-primary)', margin: 0 }}>
                 {editingService ? '✏️ Edit Service' : '✨ Add New Service'}
               </h3>
-              <button onClick={() => setShowServiceModal(false)} style={{
+              <button onClick={() => setShowServiceModal(false)} aria-label="Close" style={{
                 background: 'none', border: 'none', color: 'var(--dash-text-secondary)', fontSize: 20, cursor: 'pointer', outline: 'none'
               }}>×</button>
             </div>
@@ -1349,7 +1337,7 @@ export default function AdminDashboard() {
               <h3 style={{ fontSize: 20, fontWeight: 700, color: 'var(--dash-text-primary)', margin: 0 }}>
                 ✏️ Edit User Details
               </h3>
-              <button onClick={() => setShowUserModal(false)} style={{
+              <button onClick={() => setShowUserModal(false)} aria-label="Close" style={{
                 background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 20, cursor: 'pointer', outline: 'none'
               }}>×</button>
             </div>
@@ -1448,6 +1436,97 @@ export default function AdminDashboard() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function PaginationControls({ pagination }) {
+  const {
+    page,
+    totalPages,
+    limit,
+    setLimit,
+    hasNextPage,
+    hasPrevPage,
+    nextPage,
+    prevPage,
+    total,
+    loading
+  } = pagination;
+
+  if (totalPages <= 1) return null;
+
+  return (
+    <div style={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginTop: '2rem',
+      paddingTop: '1.5rem',
+      borderTop: 'var(--dash-card-border)',
+      flexWrap: 'wrap',
+      gap: '12px'
+    }}>
+      <div style={{ fontSize: '13px', color: 'var(--dash-text-secondary)' }}>
+        Showing page {page} of {totalPages} ({total} items total)
+      </div>
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <select
+          value={limit}
+          onChange={(e) => setLimit(Number(e.target.value))}
+          style={{
+            background: 'var(--dash-btn-bg)',
+            border: 'var(--dash-btn-border)',
+            color: 'var(--dash-text-primary)',
+            padding: '6px 12px',
+            borderRadius: '6px',
+            fontSize: '13px',
+            cursor: 'pointer',
+            outline: 'none',
+            marginRight: '12px'
+          }}
+        >
+          <option value={5}>5 per page</option>
+          <option value={10}>10 per page</option>
+          <option value={20}>20 per page</option>
+          <option value={50}>50 per page</option>
+        </select>
+        
+        <button
+          onClick={prevPage}
+          disabled={!hasPrevPage || loading}
+          style={{
+            background: hasPrevPage ? 'var(--dash-btn-bg)' : 'rgba(0, 0, 0, 0.05)',
+            border: 'var(--dash-btn-border)',
+            color: hasPrevPage ? 'var(--dash-btn-text)' : 'var(--dash-text-muted)',
+            padding: '6px 16px',
+            borderRadius: '6px',
+            fontSize: '13px',
+            cursor: hasPrevPage ? 'pointer' : 'not-allowed',
+            transition: 'all 0.2s',
+            opacity: hasPrevPage ? 1 : 0.5
+          }}
+        >
+          Previous
+        </button>
+        <button
+          onClick={nextPage}
+          disabled={!hasNextPage || loading}
+          style={{
+            background: hasNextPage ? 'var(--dash-btn-bg)' : 'rgba(0, 0, 0, 0.05)',
+            border: 'var(--dash-btn-border)',
+            color: hasNextPage ? 'var(--dash-btn-text)' : 'var(--dash-text-muted)',
+            padding: '6px 16px',
+            borderRadius: '6px',
+            fontSize: '13px',
+            cursor: hasNextPage ? 'pointer' : 'not-allowed',
+            transition: 'all 0.2s',
+            opacity: hasNextPage ? 1 : 0.5
+          }}
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 }

@@ -88,6 +88,7 @@ function App() {
                   />
 
                   {/* 404 — catch all unmatched routes */}
+                  <Route path="/404" element={<NotFoundPage />} />
                   <Route path="*" element={<NotFoundPage />} />
                 </Routes>
               </Suspense>

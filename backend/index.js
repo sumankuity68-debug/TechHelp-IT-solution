@@ -75,17 +75,22 @@ app.use((err, req, res, next) => {
     });
 });
 
-const PORT = process.env.PORT || 5000;
-const server = app.listen(PORT, () => {
-    console.log(`✅ Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
-    console.log(`🔒 CORS allowed origins: ${allowedOrigins.join(', ')}`);
-});
+let server;
+if (process.env.NODE_ENV !== 'test') {
+  const PORT = process.env.PORT || 5000;
+  server = app.listen(PORT, () => {
+      console.log(`✅ Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+      console.log(`🔒 CORS allowed origins: ${allowedOrigins.join(', ')}`);
+  });
 
-server.on('error', (err) => {
-    if (err.code === 'EADDRINUSE') {
-        console.error(`❌ Port ${PORT} is already in use. Run: npx kill-port ${PORT} then try again.`);
-        process.exit(1);
-    } else {
-        throw err;
-    }
-});
+  server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+          console.error(`❌ Port ${PORT} is already in use. Run: npx kill-port ${PORT} then try again.`);
+          process.exit(1);
+      } else {
+          throw err;
+      }
+  });
+}
+
+export { app, server };

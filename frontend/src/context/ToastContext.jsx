@@ -160,6 +160,7 @@ const ToastItem = ({ toast, onClose }) => {
       </div>
       <button
         onClick={handleClose}
+        aria-label="Close notification"
         style={{
           background: 'none',
           border: 'none',

@@ -146,7 +146,7 @@ function AskExpertModal({ service, onClose }) {
               {service.title}
             </h3>
           </div>
-          <button onClick={onClose} style={{
+          <button onClick={onClose} aria-label="Close modal" style={{
             width: 32, height: 32, borderRadius: '50%', border: '1px solid var(--border-color)',
             background: 'var(--bg-primary)', color: 'var(--text-secondary)',
             fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',

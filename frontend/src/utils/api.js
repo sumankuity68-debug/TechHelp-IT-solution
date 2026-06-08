@@ -65,6 +65,11 @@ export const contactAPI = {
       body: JSON.stringify(form),
     }).then(handleResponse),
 
+  getMy: () =>
+    fetch(`${BASE}/contact/mine`, {
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+    }).then(handleResponse),
+
   // Admin only — supports pagination: { page, limit, sort, status, search }
   getAll: (params = {}) =>
     fetch(`${BASE}/contact${buildQuery(params)}`, {

@@ -8,6 +8,7 @@ A full-stack IT agency web application built with **React**, **Node.js**, **Expr
 ![MongoDB](https://img.shields.io/badge/mongodb-mongoose-47A248?logo=mongodb)
 ![Express](https://img.shields.io/badge/express-4.x-000000?logo=express)
 ![Vite](https://img.shields.io/badge/vite-5.x-646CFF?logo=vite)
+![Lighthouse](https://img.shields.io/badge/Lighthouse-96%2F100-brightgreen?logo=lighthouse&logoColor=white)
 
 > 🚧 **Live Demo:** Coming soon — deployment in progress.
 

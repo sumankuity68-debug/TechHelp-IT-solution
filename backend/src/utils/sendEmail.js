@@ -28,7 +28,7 @@ const sendEmail = async (options) => {
   } catch (error) {
     console.error('📧 [SMTP Mail Error] Failed to send email via SMTP:', error.message);
 
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
       console.log('\n==================================================');
       console.log('🛠️  [DEVELOPMENT FALLBACK] EMAIL DETAILS');
       console.log(`To:      ${options.email}`);

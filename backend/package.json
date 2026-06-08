@@ -8,7 +8,8 @@
     "predev": "npx kill-port 5000 || true",
     "dev": "nodemon index.js",
     "prestart": "npx kill-port 5000 || true",
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand"
   },
   "keywords": [
     "express",
@@ -33,6 +34,8 @@
     "twilio": "^6.0.2"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2"
+    "jest": "^30.4.2",
+    "nodemon": "^3.0.2",
+    "supertest": "^7.2.2"
   }
 }
