@@ -1,48 +1,151 @@
 // FILE: frontend/src/pages/ProfilePage.jsx
 // Full profile page — update avatar, name, phone, address, bio
 
-import { useState, useRef } from 'react';
+import { useReducer, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+
+const makeInitialState = (user) => ({
+  form: {
+    name:    user?.name    || '',
+    phone:   user?.phone   || '',
+    address: user?.address || '',
+    bio:     user?.bio     || '',
+    avatar:  user?.avatar  || '',
+  },
+  saving: false,
+  success: '',
+  error: '',
+  preview: user?.avatar || '',
+
+  securityForm: {
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+    otp: '',
+  },
+  securitySuccess: '',
+  securityError: '',
+  securityLoading: false,
+  otpMode: false,
+  otpSent: false,
+});
+
+function profileReducer(state, action) {
+  switch (action.type) {
+    case 'SET_PROFILE_FIELD':
+      return {
+        ...state,
+        form: {
+          ...state.form,
+          [action.field]: action.value
+        }
+      };
+    case 'SET_PREVIEW_AND_AVATAR':
+      return {
+        ...state,
+        preview: action.preview,
+        form: {
+          ...state.form,
+          avatar: action.avatar
+        }
+      };
+    case 'START_SAVING':
+      return { ...state, saving: true, error: '', success: '' };
+    case 'SAVING_SUCCESS':
+      return { ...state, saving: false, success: action.value, error: '' };
+    case 'SAVING_FAILURE':
+      return { ...state, saving: false, error: action.value, success: '' };
+    case 'SET_SECURITY_FIELD':
+      return {
+        ...state,
+        securityForm: {
+          ...state.securityForm,
+          [action.field]: action.value
+        }
+      };
+    case 'START_SECURITY':
+      return { ...state, securityLoading: true, securityError: '', securitySuccess: '' };
+    case 'SECURITY_SEND_OTP_SUCCESS':
+      return {
+        ...state,
+        securityLoading: false,
+        securitySuccess: action.value,
+        securityError: '',
+        otpMode: true,
+        otpSent: true
+      };
+    case 'SECURITY_UPDATE_SUCCESS':
+      return {
+        ...state,
+        securityLoading: false,
+        securitySuccess: action.value,
+        securityError: '',
+        securityForm: {
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+          otp: '',
+        },
+        otpMode: false,
+        otpSent: false,
+      };
+    case 'SECURITY_FAILURE':
+      return { ...state, securityLoading: false, securityError: action.value, securitySuccess: '' };
+    case 'SET_OTP_MODE':
+      return { ...state, otpMode: action.value };
+    case 'SET_OTP_SENT':
+      return { ...state, otpSent: action.value };
+    case 'RESET_SECURITY':
+      return {
+        ...state,
+        securitySuccess: '',
+        securityError: '',
+        otpMode: false,
+        otpSent: false,
+        securityForm: {
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+          otp: '',
+        }
+      };
+    default:
+      return state;
+  }
+}
 
 export default function ProfilePage() {
   const { user, updateProfile } = useAuth();
   const fileRef = useRef(null);
   const navigate = useNavigate();
 
-  const [form, setForm] = useState({
-    name:    user?.name    || '',
-    phone:   user?.phone   || '',
-    address: user?.address || '',
-    bio:     user?.bio     || '',
-    avatar:  user?.avatar  || '',
-  });
-  const [saving,   setSaving]   = useState(false);
-  const [success,  setSuccess]  = useState('');
-  const [error,    setError]    = useState('');
-  const [preview,  setPreview]  = useState(user?.avatar || '');
+  const [state, dispatch] = useReducer(profileReducer, makeInitialState(user));
+  const {
+    form,
+    saving,
+    success,
+    error,
+    preview,
+    securityForm,
+    securitySuccess,
+    securityError,
+    securityLoading,
+    otpMode,
+    otpSent
+  } = state;
 
-  // Change Password states
-  const [securityForm, setSecurityForm] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-    otp: '',
-  });
-  const [securitySuccess, setSecuritySuccess] = useState('');
-  const [securityError, setSecurityError] = useState('');
-  const [securityLoading, setSecurityLoading] = useState(false);
-  const [otpMode, setOtpMode] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
-
-  const handleChange = e => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  const handleChange = e => dispatch({ type: 'SET_PROFILE_FIELD', field: e.target.name, value: e.target.value });
 
   // Compress & convert uploaded image to base64 via canvas
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { setError('Image must be under 5 MB'); return; }
-    setError('');
+    if (file.size > 5 * 1024 * 1024) {
+      dispatch({ type: 'SAVING_FAILURE', value: 'Image must be under 5 MB' });
+      return;
+    }
+    dispatch({ type: 'SAVING_FAILURE', value: '' });
 
     const img = new Image();
     const objectUrl = URL.createObjectURL(file);
@@ -61,19 +164,16 @@ export default function ProfilePage() {
       // Convert to JPEG at 75% quality — typically <50kb
       const compressed = canvas.toDataURL('image/jpeg', 0.75);
       URL.revokeObjectURL(objectUrl);
-      setPreview(compressed);
-      setForm(prev => ({ ...prev, avatar: compressed }));
+      dispatch({ type: 'SET_PREVIEW_AND_AVATAR', preview: compressed, avatar: compressed });
     };
     img.src = objectUrl;
   };
 
 
-  const handleSecurityChange = e => setSecurityForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  const handleSecurityChange = e => dispatch({ type: 'SET_SECURITY_FIELD', field: e.target.name, value: e.target.value });
 
   const handleSendOTP = async () => {
-    setSecurityError('');
-    setSecuritySuccess('');
-    setSecurityLoading(true);
+    dispatch({ type: 'START_SECURITY' });
     try {
       const res = await fetch('/api/auth/forgot-password', {
         method: 'POST',
@@ -94,32 +194,28 @@ export default function ProfilePage() {
       };
 
       const masked = maskEmail(user.email);
-      setOtpMode(true);
-      setOtpSent(true);
-      setSecuritySuccess(`Verification code sent to your registered email (${masked})! Please check your inbox.`);
+      dispatch({
+        type: 'SECURITY_SEND_OTP_SUCCESS',
+        value: `Verification code sent to your registered email (${masked})! Please check your inbox.`
+      });
     } catch (err) {
-      setSecurityError(err.message);
-    } finally {
-      setSecurityLoading(false);
+      dispatch({ type: 'SECURITY_FAILURE', value: err.message });
     }
   };
 
   const handleSecuritySubmit = async (e) => {
     e.preventDefault();
-    setSecurityError('');
-    setSecuritySuccess('');
+    dispatch({ type: 'START_SECURITY' });
 
     if (securityForm.newPassword.length < 6) {
-      setSecurityError('New password must be at least 6 characters');
+      dispatch({ type: 'SECURITY_FAILURE', value: 'New password must be at least 6 characters' });
       return;
     }
 
     if (securityForm.newPassword !== securityForm.confirmPassword) {
-      setSecurityError('New passwords do not match');
+      dispatch({ type: 'SECURITY_FAILURE', value: 'New passwords do not match' });
       return;
     }
-
-    setSecurityLoading(true);
 
     try {
       let res;
@@ -153,33 +249,20 @@ export default function ProfilePage() {
       data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to update password');
 
-      setSecuritySuccess('Password updated successfully! ✓');
-      setSecurityForm({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-        otp: '',
-      });
-      setOtpMode(false);
-      setOtpSent(false);
+      dispatch({ type: 'SECURITY_UPDATE_SUCCESS', value: 'Password updated successfully! ✓' });
     } catch (err) {
-      setSecurityError(err.message);
-    } finally {
-      setSecurityLoading(false);
+      dispatch({ type: 'SECURITY_FAILURE', value: err.message });
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(''); setSuccess('');
-    setSaving(true);
+    dispatch({ type: 'START_SAVING' });
     try {
       await updateProfile(form);
-      setSuccess('Profile updated successfully! ✓');
+      dispatch({ type: 'SAVING_SUCCESS', value: 'Profile updated successfully! ✓' });
     } catch (err) {
-      setError(err.message);
-    } finally {
-      setSaving(false);
+      dispatch({ type: 'SAVING_FAILURE', value: err.message });
     }
   };
 
@@ -237,7 +320,7 @@ export default function ProfilePage() {
                   Upload Photo
                 </button>
                 {preview && (
-                  <button type="button" onClick={() => { setPreview(''); setForm(p => ({ ...p, avatar: '' })); }} style={{
+                  <button type="button" onClick={() => { dispatch({ type: 'SET_PREVIEW_AND_AVATAR', preview: '', avatar: '' }); }} style={{
                     padding: '7px 16px', background: 'transparent',
                     color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)',
                     borderRadius: 6, fontSize: 12, cursor: 'pointer',
@@ -420,7 +503,7 @@ export default function ProfilePage() {
                     </label>
                     <button
                       type="button"
-                      onClick={() => { setOtpMode(false); setOtpSent(false); setSecurityError(''); setSecuritySuccess(''); }}
+                      onClick={() => { dispatch({ type: 'RESET_SECURITY' }); }}
                       style={{
                         background: 'none', border: 'none', color: 'var(--text-muted)',
                         fontSize: 12, cursor: 'pointer', outline: 'none', fontWeight: 600, padding: 0

@@ -12,7 +12,10 @@ const PHONE_REGEX = /^[+]?[\d\s\-().]{7,15}$/;
 
 const validators = {
   /**
-   * Checks that all listed fields are present and non-empty in req.body.
+   * Creates a validation rule to ensure that specific fields are present and non-empty in the request body.
+   *
+   * @param {string[]} fields - The names of the fields to check.
+   * @returns {function(object): (string|null)} A validation function that takes an Express request (req) and returns an error message if any field is missing/empty, or null if validation passes.
    */
   required: (fields) => (req) => {
     for (const field of fields) {
@@ -25,7 +28,10 @@ const validators = {
   },
 
   /**
-   * Validates that a field is a properly formatted email address.
+   * Creates a validation rule to check if a specific field is a valid email format.
+   *
+   * @param {string} field - The name of the field to check.
+   * @returns {function(object): (string|null)} A validation function that takes an Express request (req) and returns an error message if the field exists but is invalid, or null if valid/missing.
    */
   isEmail: (field) => (req) => {
     const val = req.body[field];
@@ -36,7 +42,11 @@ const validators = {
   },
 
   /**
-   * Validates minimum string length for a field.
+   * Creates a validation rule to ensure a string field meets a minimum length requirement.
+   *
+   * @param {string} field - The name of the field to check.
+   * @param {number} len - The minimum allowed character length.
+   * @returns {function(object): (string|null)} A validation function that takes an Express request (req) and returns an error message if the field length is too short, or null if valid/missing.
    */
   minLength: (field, len) => (req) => {
     const val = req.body[field];
@@ -47,7 +57,11 @@ const validators = {
   },
 
   /**
-   * Validates maximum string length for a field.
+   * Creates a validation rule to ensure a string field does not exceed a maximum length requirement.
+   *
+   * @param {string} field - The name of the field to check.
+   * @param {number} len - The maximum allowed character length.
+   * @returns {function(object): (string|null)} A validation function that takes an Express request (req) and returns an error message if the field length is too long, or null if valid/missing.
    */
   maxLength: (field, len) => (req) => {
     const val = req.body[field];
@@ -58,7 +72,10 @@ const validators = {
   },
 
   /**
-   * Validates that a field is a valid phone number.
+   * Creates a validation rule to check if a specific field is a valid phone number.
+   *
+   * @param {string} field - The name of the field to check.
+   * @returns {function(object): (string|null)} A validation function  that takes an Express request (req) and returns an error message if the field exists but is not a valid phone format, or null if valid/missing.
    */
   isPhone: (field) => (req) => {
     const val = req.body[field];
@@ -69,7 +86,11 @@ const validators = {
   },
 
   /**
-   * Validates that a field value is one of the allowed values.
+   * Creates a validation rule to ensure a field's value matches one of the specified allowed values.
+   *
+   * @param {string} field - The name of the field to check.
+   * @param {any[]} allowed - An array of allowed values.
+   * @returns {function(object): (string|null)} A validation function that takes an Express request (req) and returns an error message if the value is not matching the allowed array, or null if valid/missing.
    */
   isOneOf: (field, allowed) => (req) => {
     const val = req.body[field];
@@ -83,7 +104,8 @@ const validators = {
 // ── Middleware factory ────────────────────────────────────────────────────
 
 /**
- * validate(...rules) — express middleware factory
+ * Middleware factory that combines multiple validation rules into a single Express middleware.
+ * If a rule fails, it responds with a 400 Bad Request error.
  *
  * Usage:
  *   router.post('/login', validate(
@@ -94,6 +116,9 @@ const validators = {
  *
  * On failure: responds 400 with { success: false, message: '...' }
  * On pass:    calls next()
+ *
+ * @param {...function(object): (string|null)} rules - An array of validation rule functions to execute sequentially.
+ * @returns {function(object, object, function): void} An Express middleware function.
  */
 export const validate = (...rules) => (req, res, next) => {
   for (const rule of rules) {

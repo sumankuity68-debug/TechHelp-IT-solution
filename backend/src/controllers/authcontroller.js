@@ -1,17 +1,11 @@
 
 import crypto from 'crypto';
 import sendEmail from '../utils/sendEmail.js';
-import jwt from 'jsonwebtoken';
 import User from '../models/user.js';
 import { OAuth2Client } from 'google-auth-library';
+import { generateToken } from '../utils/token.js';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE || '30d',
-  });
-};
 
 // ── @route   POST /api/auth/google
 // ── @desc    Sign in via Google OAuth (existing accounts only)

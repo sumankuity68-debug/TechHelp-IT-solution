@@ -9,6 +9,13 @@ import Layout from './components/layout/Layout';
 import ProtectedRoute from './components/ui/ProtectedRoute';
 import PageLoader from './components/ui/PageLoader';
 import ErrorBoundary from './components/ui/ErrorBoundary';
+import {
+  ContentPageSkeleton,
+  FormPageSkeleton,
+  AuthPageSkeleton,
+  DashboardPageSkeleton,
+  ProfilePageSkeleton
+} from './components/ui/Skeleton';
 
 // Lazy load route pages to optimize bundle sizes and speed up initial page loads
 const HomePage           = React.lazy(() => import('./pages/HomePage'));
@@ -36,33 +43,33 @@ function App() {
             <ErrorBoundary>
               <Suspense fallback={<PageLoader />}>
                 <Routes>
-                  <Route path="/" element={<Layout><HomePage /></Layout>} />
-                  <Route path="/about" element={<Layout><AboutPage /></Layout>} />
-                  <Route path="/services" element={<Layout><ServicesPage /></Layout>} />
-                  <Route path="/testimonials" element={<Layout><TestimonialsPage /></Layout>} />
-                  <Route path="/contact" element={<Layout><ContactPage /></Layout>} />
+                  <Route path="/" element={<Layout><Suspense fallback={<ContentPageSkeleton />}><HomePage /></Suspense></Layout>} />
+                  <Route path="/about" element={<Layout><Suspense fallback={<ContentPageSkeleton />}><AboutPage /></Suspense></Layout>} />
+                  <Route path="/services" element={<Layout><Suspense fallback={<ContentPageSkeleton />}><ServicesPage /></Suspense></Layout>} />
+                  <Route path="/testimonials" element={<Layout><Suspense fallback={<ContentPageSkeleton />}><TestimonialsPage /></Suspense></Layout>} />
+                  <Route path="/contact" element={<Layout><Suspense fallback={<ContentPageSkeleton />}><ContactPage /></Suspense></Layout>} />
                   <Route
                     path="/rate"
                     element={
                       <ProtectedRoute>
-                        <Layout><RatingPage /></Layout>
+                        <Layout><Suspense fallback={<FormPageSkeleton />}><RatingPage /></Suspense></Layout>
                       </ProtectedRoute>
                     }
                   />
 
                   {/* Auth pages (standalone - no Layout) */}
-                  <Route path="/login" element={<LoginPage />} />
-                  <Route path="/signup" element={<SignupPage />} />
-                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                  <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-                  <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
+                  <Route path="/login" element={<Suspense fallback={<AuthPageSkeleton />}><LoginPage /></Suspense>} />
+                  <Route path="/signup" element={<Suspense fallback={<AuthPageSkeleton />}><SignupPage /></Suspense>} />
+                  <Route path="/forgot-password" element={<Suspense fallback={<AuthPageSkeleton />}><ForgotPasswordPage /></Suspense>} />
+                  <Route path="/reset-password/:token" element={<Suspense fallback={<AuthPageSkeleton />}><ResetPasswordPage /></Suspense>} />
+                  <Route path="/verify-email/:token" element={<Suspense fallback={<AuthPageSkeleton />}><VerifyEmailPage /></Suspense>} />
                   
                   {/* Protected routes - User Dashboard */}
                   <Route
                     path="/dashboard"
                     element={
                       <ProtectedRoute>
-                        <Layout><UserDashboard /></Layout>
+                        <Layout><Suspense fallback={<DashboardPageSkeleton />}><UserDashboard /></Suspense></Layout>
                       </ProtectedRoute>
                     }
                   />
@@ -72,7 +79,7 @@ function App() {
                     path="/profile"
                     element={
                       <ProtectedRoute>
-                        <Layout><ProfilePage /></Layout>
+                        <Layout><Suspense fallback={<ProfilePageSkeleton />}><ProfilePage /></Suspense></Layout>
                       </ProtectedRoute>
                     }
                   />
@@ -82,14 +89,14 @@ function App() {
                     path="/admin"
                     element={
                       <ProtectedRoute requireAdmin={true}>
-                        <AdminDashboard />
+                        <Suspense fallback={<DashboardPageSkeleton />}><AdminDashboard /></Suspense>
                       </ProtectedRoute>
                     }
                   />
 
                   {/* 404 — catch all unmatched routes */}
-                  <Route path="/404" element={<NotFoundPage />} />
-                  <Route path="*" element={<NotFoundPage />} />
+                  <Route path="/404" element={<Suspense fallback={<ContentPageSkeleton />}><NotFoundPage /></Suspense>} />
+                  <Route path="*" element={<Suspense fallback={<ContentPageSkeleton />}><NotFoundPage /></Suspense>} />
                 </Routes>
               </Suspense>
             </ErrorBoundary>
