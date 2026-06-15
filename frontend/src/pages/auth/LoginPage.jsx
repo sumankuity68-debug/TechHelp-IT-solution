@@ -30,8 +30,8 @@ export default function LoginPage() {
 
     try {
       const endpoint = showOtpInput 
-        ? 'http://localhost:5000/api/auth/verify-expert-login' 
-        : 'http://localhost:5000/api/auth/login';
+        ? '/api/auth/verify-expert-login' 
+        : '/api/auth/login';
 
       const payload = showOtpInput 
         ? { email: form.email, otp } 
@@ -78,7 +78,7 @@ export default function LoginPage() {
   };
   const handleResendVerification = async () => {
     try {
-      const res = await fetch('http://localhost:5000/api/auth/resend-verification', {
+      const res = await fetch('/api/auth/resend-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: resendEmail }),
@@ -508,22 +508,26 @@ export default function LoginPage() {
         {/* Divider & Google sign-in & Signup link - only if not showing OTP verification */}
         {!showOtpInput && (
           <>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 16,
-                margin: '28px 0 20px',
-                color: 'rgba(255, 255, 255, 0.5)',
-                fontSize: 12,
-              }}
-            >
-              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.2)' }} />
-              OR
-              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.2)' }} />
-            </div>
+            {import.meta.env.VITE_GOOGLE_CLIENT_ID && (
+              <>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 16,
+                    margin: '28px 0 20px',
+                    color: 'rgba(255, 255, 255, 0.5)',
+                    fontSize: 12,
+                  }}
+                >
+                  <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.2)' }} />
+                  OR
+                  <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.2)' }} />
+                </div>
 
-            <GoogleAuthButton label="Sign in with Google" darkMode={true} mode="login" />
+                <GoogleAuthButton label="Sign in with Google" darkMode={true} mode="login" />
+              </>
+            )}
 
             <p style={{ textAlign: 'center', fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 24 }}>
               Don't have an account?{' '}

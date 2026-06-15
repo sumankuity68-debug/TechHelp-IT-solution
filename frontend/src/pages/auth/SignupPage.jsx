@@ -116,7 +116,7 @@ export default function SignupPage() {
     dispatch({ type: 'START_LOADING' });
 
     try {
-      const res = await fetch('http://localhost:5000/api/auth/register', {
+      const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -156,7 +156,7 @@ export default function SignupPage() {
     dispatch({ type: 'START_LOADING' });
 
     try {
-      const res = await fetch('http://localhost:5000/api/auth/verify-email', {
+      const res = await fetch('/api/auth/verify-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp }),
@@ -183,7 +183,7 @@ export default function SignupPage() {
     dispatch({ type: 'START_LOADING' });
 
     try {
-      const res = await fetch('http://localhost:5000/api/auth/resend-verification', {
+      const res = await fetch('/api/auth/resend-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
@@ -758,21 +758,25 @@ export default function SignupPage() {
               </p>
             </form>
 
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 16,
-              margin: '24px 0 16px',
-              color: 'rgba(255, 255, 255, 0.5)',
-              fontSize: 12,
-            }}>
-              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.2)' }} />
-              OR
-              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.2)' }} />
-            </div>
+            {import.meta.env.VITE_GOOGLE_CLIENT_ID && (
+              <>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 16,
+                  margin: '24px 0 16px',
+                  color: 'rgba(255, 255, 255, 0.5)',
+                  fontSize: 12,
+                }}>
+                  <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.2)' }} />
+                  OR
+                  <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.2)' }} />
+                </div>
 
-            {/* Google Sign-Up */}
-            <GoogleAuthButton label="Sign up with Google" darkMode={true} mode="signup" />
+                {/* Google Sign-Up */}
+                <GoogleAuthButton label="Sign up with Google" darkMode={true} mode="signup" />
+              </>
+            )}
 
             <p style={{ textAlign: 'center', fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 24 }}>
               Already have an account?{' '}

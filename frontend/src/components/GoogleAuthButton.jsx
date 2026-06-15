@@ -32,8 +32,8 @@ export default function GoogleAuthButton({ label = 'Continue with Google', darkM
 
       // Choose endpoint based on mode
       const endpoint = mode === 'signup'
-        ? 'http://localhost:5000/api/auth/google-signup'  // creates new users
-        : 'http://localhost:5000/api/auth/google-token';  // existing users only
+        ? '/api/auth/google-signup'  // creates new users
+        : '/api/auth/google-token';  // existing users only
 
       const res = await fetch(endpoint, {
         method: 'POST',
