@@ -46,3 +46,14 @@ export const admin = (req, res, next) => {
     });
   }
 };
+
+export const expert = (req, res, next) => {
+  if (req.user && (req.user.role === 'expert' || req.user.role === 'admin')) {
+    next();
+  } else {
+    res.status(403).json({
+      success: false,
+      message: 'Not authorized as expert',
+    });
+  }
+};

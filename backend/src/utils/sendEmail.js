@@ -3,6 +3,26 @@
 import nodemailer from 'nodemailer';
 
 const sendEmail = async (options) => {
+  if (process.env.NODE_ENV === 'test' || !process.env.SMTP_HOST) {
+    console.log('\n==================================================');
+    console.log('🛠️  [TEST FALLBACK / NO SMTP] EMAIL DETAILS');
+    console.log(`To:      ${options.email}`);
+    console.log(`Subject: ${options.subject}`);
+    
+    // Extract OTP or verification code if present in HTML
+    const otpMatch = options?.html?.match(/class="otp-code"[^>]*>([^<]+)</);
+    if (otpMatch) {
+      console.log(`🔑 CODE:  ${otpMatch[1].trim()}`);
+    } else {
+      const sixDigitMatch = options?.html?.match(/\b\d{6}\b/);
+      if (sixDigitMatch) {
+        console.log(`🔑 CODE:  ${sixDigitMatch[0]}`);
+      }
+    }
+    console.log('==================================================\n');
+    return;
+  }
+
   try {
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,

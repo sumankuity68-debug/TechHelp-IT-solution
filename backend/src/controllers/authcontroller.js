@@ -2,6 +2,7 @@
 import crypto from 'crypto';
 import sendEmail from '../utils/sendEmail.js';
 import User from '../models/user.js';
+import Expert from '../models/expert.js';
 import { OAuth2Client } from 'google-auth-library';
 import { generateToken } from '../utils/token.js';
 
@@ -238,7 +239,7 @@ export const googleSignupAuth = async (req, res) => {
 // ── @access  Public
 export const register = async (req, res) => {
   try {
-    const { name, email, phone, password, role, adminCode } = req.body;
+    const { name, email, phone, password, role, adminCode, expertise } = req.body;
 
     // Validate input
     if (!name || !email || !phone || !password) {
@@ -246,6 +247,24 @@ export const register = async (req, res) => {
         success: false,
         message: 'Please provide name, email, phone number, and password',
       });
+    }
+
+    // Expert validation
+    if (role === 'expert') {
+      if (!expertise) {
+        return res.status(400).json({
+          success: false,
+          message: 'Area of expertise is required for expert accounts',
+        });
+      }
+      
+      const expertExists = await Expert.findOne({ email: email.toLowerCase() });
+      if (expertExists) {
+        return res.status(400).json({
+          success: false,
+          message: 'An expert account with this email already exists',
+        });
+      }
     }
 
     // Admin code verification
@@ -273,6 +292,33 @@ export const register = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'User already exists with this email',
+      });
+    }
+
+    // Expert registration flow (bypasses standard OTP verify email)
+    if (role === 'expert') {
+      const user = await User.create({
+        name,
+        email,
+        phone,
+        password,
+        role: 'expert',
+        isVerified: false,
+      });
+
+      const expert = await Expert.create({
+        name,
+        role: expertise,
+        email: email.toLowerCase(),
+        phone,
+        accessCode: password,
+        isApproved: false,
+      });
+
+      return res.status(201).json({
+        success: true,
+        message: 'Registration successful! Your expert profile is pending approval from the administrator.',
+        requiresApproval: true,
       });
     }
 
@@ -396,6 +442,18 @@ export const login = async (req, res) => {
       });
     }
 
+    // Check if expert is approved
+    if (user.role === 'expert') {
+      const expert = await Expert.findOne({ email: user.email });
+      if (expert && !expert.isApproved) {
+        return res.status(403).json({
+          success: false,
+          message: 'Your expert account is pending approval from the administrator. You will be able to log in once approved.',
+          requiresApproval: true,
+        });
+      }
+    }
+
     // ✅ Check if email is verified
     if (!user.isVerified) {
       return res.status(403).json({
@@ -418,6 +476,47 @@ export const login = async (req, res) => {
       return res.status(401).json({
         success: false,
         message: 'Invalid credentials',
+      });
+    }
+
+    // Check if the user is an expert — trigger 2FA Secret Login Code to Admin email
+    if (user.role === 'expert') {
+      const otp = user.getVerificationToken();
+      // Set short expiry for login: 15 minutes
+      user.verificationTokenExpire = Date.now() + 15 * 60 * 1000;
+      await user.save({ validateBeforeSave: false });
+
+      // Find Admin email
+      const adminUser = await User.findOne({ role: 'admin' });
+      const adminEmail = adminUser ? adminUser.email : process.env.EMAIL_FROM;
+
+      const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #f8fafc;">
+          <h2 style="color: #4f46e5; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">Expert Login Request</h2>
+          <p>Expert <strong>${user.name}</strong> (${user.email}) is trying to log in to the portal.</p>
+          <p>Please share the following One-Time Password (OTP) with them to authorize this session:</p>
+          <div style="display: inline-block; font-size: 32px; font-weight: 700; color: #4f46e5; letter-spacing: 6px; background: #fff; border: 2px dashed #4f46e5; padding: 15px 30px; border-radius: 8px; margin: 20px 0;">
+            ${otp}
+          </div>
+          <p style="color: #64748b; font-size: 13px;">This code will expire in 15 minutes.</p>
+        </div>
+      `;
+
+      try {
+        await sendEmail({
+          email: adminEmail,
+          subject: '🔐 Action Required: Expert Login Authorization Code',
+          html,
+        });
+      } catch (mailErr) {
+        console.error('Failed to send expert login 2FA code email:', mailErr.message);
+      }
+
+      return res.status(200).json({
+        success: true,
+        requiresTwoFactor: true,
+        message: 'An authorization code has been sent to the Admin. Please enter it to complete login.',
+        email: user.email,
       });
     }
 
@@ -999,6 +1098,70 @@ export const changePassword = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Server error changing password',
+    });
+  }
+};
+
+// ── @route   POST /api/auth/verify-expert-login
+// ── @desc    Verify expert OTP code to complete login
+// ── @access  Public
+export const verifyExpertLogin = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide email and authorization code',
+      });
+    }
+
+    // Hash the OTP
+    const verificationToken = crypto
+      .createHash('sha256')
+      .update(String(otp).trim())
+      .digest('hex');
+
+    const user = await User.findOne({
+      email: email.toLowerCase(),
+      verificationToken,
+      verificationTokenExpire: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired authorization code',
+      });
+    }
+
+    // Clear verification fields
+    user.verificationToken = null;
+    user.verificationTokenExpire = null;
+    await user.save({ validateBeforeSave: false });
+
+    const token = generateToken(user._id);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Login successful',
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar || '',
+        phone: user.phone || '',
+        address: user.address || '',
+        bio: user.bio || '',
+        createdAt: user.createdAt,
+      },
+    });
+  } catch (error) {
+    console.error('Verify expert login error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during expert verification',
     });
   }
 };

@@ -1,7 +1,21 @@
-import Service from '../models/Service.js';
+import Service from '../models/service.js';
+import Expert from '../models/expert.js';
+import { seedDefaultExperts } from './expertController.js';
 
 // Auto-seed default services
 const seedDefaultServices = async () => {
+  // Ensure experts are seeded first
+  const expertCount = await Expert.countDocuments();
+  if (expertCount === 0) {
+    await seedDefaultExperts();
+  }
+
+  const experts = await Expert.find();
+  const getExpertIdByRole = (role) => {
+    const matched = experts.find(e => e.role === role);
+    return matched ? matched._id : null;
+  };
+
   const defaults = [
     {
       num: '01',
@@ -9,6 +23,7 @@ const seedDefaultServices = async () => {
       description: 'Scalable web applications built with React, Node.js, and MongoDB. Secure architectures, fast load times, and cloud integration.',
       tags: ['React', 'Node.js', 'MongoDB', 'REST APIs'],
       isActive: true,
+      expert: getExpertIdByRole('Senior Full-Stack Engineer'),
     },
     {
       num: '02',
@@ -16,6 +31,7 @@ const seedDefaultServices = async () => {
       description: 'High-performance API design, microservices orchestration, and database tuning to drive your core operational needs.',
       tags: ['Microservices', 'GraphQL', 'Express', 'SQL/NoSQL'],
       isActive: true,
+      expert: getExpertIdByRole('Backend Architecture Lead'),
     },
     {
       num: '03',
@@ -23,6 +39,7 @@ const seedDefaultServices = async () => {
       description: 'Reliable cloud migrations, CI/CD pipeline automation, and containerized configurations for uninterrupted operations.',
       tags: ['AWS', 'Docker', 'GitHub Actions', 'Serverless'],
       isActive: true,
+      expert: getExpertIdByRole('Cloud Infrastructure Architect'),
     },
     {
       num: '04',
@@ -30,6 +47,7 @@ const seedDefaultServices = async () => {
       description: 'Intuitive interface designs that map out seamless user flows. Interactive prototypes and stunning visuals designed for conversions.',
       tags: ['Figma', 'Prototyping', 'Design Systems'],
       isActive: true,
+      expert: getExpertIdByRole('Lead UX Designer'),
     },
   ];
 
@@ -44,7 +62,7 @@ export const getAllServices = async (req, res) => {
     }
 
     const filter = req.query.all === 'true' ? {} : { isActive: true };
-    const services = await Service.find(filter).sort({ num: 1 });
+    const services = await Service.find(filter).sort({ num: 1 }).populate('expert');
 
     res.status(200).json({
       success: true,
@@ -62,7 +80,7 @@ export const getAllServices = async (req, res) => {
 
 export const createService = async (req, res) => {
   try {
-    const { num, title, description, tags } = req.body;
+    const { num, title, description, tags, expert, isActive } = req.body;
 
     if (!num || !title || !description) {
       return res.status(400).json({
@@ -84,6 +102,8 @@ export const createService = async (req, res) => {
       title,
       description,
       tags: tags || [],
+      expert: expert || null,
+      isActive: isActive !== undefined ? isActive : true,
     });
 
     res.status(201).json({

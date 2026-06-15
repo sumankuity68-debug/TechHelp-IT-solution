@@ -12,6 +12,8 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showOtpInput, setShowOtpInput] = useState(false);
+  const [otp, setOtp] = useState('');
 
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -27,10 +29,18 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch('http://localhost:5000/api/auth/login', {
+      const endpoint = showOtpInput 
+        ? 'http://localhost:5000/api/auth/verify-expert-login' 
+        : 'http://localhost:5000/api/auth/login';
+
+      const payload = showOtpInput 
+        ? { email: form.email, otp } 
+        : form;
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -44,10 +54,19 @@ export default function LoginPage() {
         throw new Error(data.message || 'Login failed');
       }
 
+      if (data.requiresTwoFactor) {
+        setShowOtpInput(true);
+        showSuccess(data.message || 'Authorization code required');
+        setLoading(false);
+        return;
+      }
+
       login(data.user, data.token);
 
       if (data.user.role === 'admin') {
         navigate('/admin');
+      } else if (data.user.role === 'expert') {
+        navigate('/expert/dashboard');
       } else {
         navigate('/dashboard');
       }
@@ -274,91 +293,153 @@ export default function LoginPage() {
               />
             </div>
           </div>
-
-          {/* Password */}
-          <div style={{ marginBottom: 12 }}>
-            <label
-              style={{
-                display: 'block',
-                fontSize: 12,
-                fontWeight: 600,
-                color: 'rgba(255, 255, 255, 0.85)',
-                marginBottom: 8,
-                textTransform: 'uppercase',
-                letterSpacing: '0.07em',
-              }}
-            >
-              Password
-            </label>
-            <div style={{ position: 'relative' }}>
-              <span style={{
-                position: 'absolute', left: 14, top: '50%',
-                transform: 'translateY(-50%)', fontSize: 16,
-                pointerEvents: 'none',
-              }}>🔒</span>
-              <input
-                name="password"
-                type={showPassword ? 'text' : 'password'}
-                required
-                placeholder="••••••••"
-                value={form.password}
-                onChange={handleChange}
+          {/* Password - only if not showing OTP verification */}
+          {!showOtpInput && (
+            <div style={{ marginBottom: 12 }}>
+              <label
                 style={{
-                  width: '100%',
-                  padding: '13px 44px 13px 42px',
-                  background: 'rgba(255, 255, 255, 0.12)',
-                  border: '1px solid rgba(255, 255, 255, 0.25)',
-                  borderRadius: 12,
-                  color: 'white',
-                  fontSize: 14,
-                  outline: 'none',
-                  transition: 'all 0.2s',
-                  boxSizing: 'border-box',
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.6)';
-                  e.target.style.background = 'rgba(255, 255, 255, 0.18)';
-                  e.target.style.boxShadow = '0 0 0 3px rgba(255,255,255,0.1)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.25)';
-                  e.target.style.background = 'rgba(255, 255, 255, 0.12)';
-                  e.target.style.boxShadow = 'none';
-                }}
-              />
-              {/* Show/hide password */}
-              <button
-                type="button"
-                onClick={() => setShowPassword(p => !p)}
-                style={{
-                  position: 'absolute', right: 12, top: '50%',
-                  transform: 'translateY(-50%)',
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  color: 'rgba(255,255,255,0.7)', fontSize: 16, padding: 4,
+                  display: 'block',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: 'rgba(255, 255, 255, 0.85)',
+                  marginBottom: 8,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.07em',
                 }}
               >
-                {showPassword ? '🙈' : '👁️'}
-              </button>
+                Password
+              </label>
+              <div style={{ position: 'relative' }}>
+                <span style={{
+                  position: 'absolute', left: 14, top: '50%',
+                  transform: 'translateY(-50%)', fontSize: 16,
+                  pointerEvents: 'none',
+                }}>🔒</span>
+                <input
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  placeholder="••••••••"
+                  value={form.password}
+                  onChange={handleChange}
+                  style={{
+                    width: '100%',
+                    padding: '13px 44px 13px 42px',
+                    background: 'rgba(255, 255, 255, 0.12)',
+                    border: '1px solid rgba(255, 255, 255, 0.25)',
+                    borderRadius: 12,
+                    color: 'white',
+                    fontSize: 14,
+                    outline: 'none',
+                    transition: 'all 0.2s',
+                    boxSizing: 'border-box',
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'rgba(255, 255, 255, 0.6)';
+                    e.target.style.background = 'rgba(255, 255, 255, 0.18)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(255,255,255,0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'rgba(255, 255, 255, 0.25)';
+                    e.target.style.background = 'rgba(255, 255, 255, 0.12)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+                {/* Show/hide password */}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(p => !p)}
+                  style={{
+                    position: 'absolute', right: 12, top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none', border: 'none', cursor: 'pointer',
+                    color: 'rgba(255,255,255,0.7)', fontSize: 16, padding: 4,
+                  }}
+                >
+                  {showPassword ? '🙈' : '👁️'}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Forgot password link */}
-          <div style={{ textAlign: 'right', marginBottom: 28 }}>
-            <Link
-              to="/forgot-password"
-              style={{
-                fontSize: 13,
-                color: 'rgba(255, 255, 255, 0.8)',
-                textDecoration: 'none',
-                fontWeight: 500,
-                transition: 'color 0.2s',
-              }}
-              onMouseEnter={e => e.target.style.color = 'white'}
-              onMouseLeave={e => e.target.style.color = 'rgba(255,255,255,0.8)'}
-            >
-              Forgot password?
-            </Link>
-          </div>
+          {/* OTP Input - only if showing OTP verification */}
+          {showOtpInput && (
+            <div style={{ marginBottom: 20 }}>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: 'rgba(255, 255, 255, 0.85)',
+                  marginBottom: 8,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.07em',
+                }}
+              >
+                Secret Authorization Code
+              </label>
+              <div style={{ position: 'relative' }}>
+                <span style={{
+                  position: 'absolute', left: 14, top: '50%',
+                  transform: 'translateY(-50%)', fontSize: 16,
+                  pointerEvents: 'none',
+                }}>🔑</span>
+                <input
+                  name="otp"
+                  type="text"
+                  required
+                  maxLength={6}
+                  placeholder="Enter 6-digit OTP code"
+                  value={otp}
+                  onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
+                  style={{
+                    width: '100%',
+                    padding: '13px 15px 13px 42px',
+                    background: 'rgba(255, 255, 255, 0.12)',
+                    border: '1px solid rgba(255, 255, 255, 0.25)',
+                    borderRadius: 12,
+                    color: 'white',
+                    fontSize: 14,
+                    outline: 'none',
+                    transition: 'all 0.2s',
+                    boxSizing: 'border-box',
+                    letterSpacing: '4px',
+                    fontWeight: 700,
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'rgba(255, 255, 255, 0.6)';
+                    e.target.style.background = 'rgba(255, 255, 255, 0.18)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(255,255,255,0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'rgba(255, 255, 255, 0.25)';
+                    e.target.style.background = 'rgba(255, 255, 255, 0.12)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Forgot password link - only if not showing OTP verification */}
+          {!showOtpInput && (
+            <div style={{ textAlign: 'right', marginBottom: 28 }}>
+              <Link
+                to="/forgot-password"
+                style={{
+                  fontSize: 13,
+                  color: 'rgba(255, 255, 255, 0.8)',
+                  textDecoration: 'none',
+                  fontWeight: 500,
+                  transition: 'color 0.2s',
+                }}
+                onMouseEnter={e => e.target.style.color = 'white'}
+                onMouseLeave={e => e.target.style.color = 'rgba(255,255,255,0.8)'}
+              >
+                Forgot password?
+              </Link>
+            </div>
+          )}
 
           {/* Submit button */}
           <button
@@ -379,6 +460,7 @@ export default function LoginPage() {
               transition: 'all 0.2s',
               boxShadow: loading ? 'none' : '0 4px 20px rgba(0, 0, 0, 0.2)',
               letterSpacing: '0.02em',
+              marginTop: showOtpInput ? 12 : 0,
             }}
             onMouseEnter={e => {
               if (!loading) {
@@ -391,48 +473,78 @@ export default function LoginPage() {
               e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.2)';
             }}
           >
-            {loading ? 'Signing in...' : 'Sign In →'}
+            {loading ? 'Verifying...' : showOtpInput ? 'Confirm Authorization Code →' : 'Sign In →'}
           </button>
+
+          {/* Back to Login helper button */}
+          {showOtpInput && (
+            <button
+              type="button"
+              onClick={() => {
+                setShowOtpInput(false);
+                setOtp('');
+                setError('');
+              }}
+              style={{
+                width: '100%',
+                padding: '12px',
+                background: 'transparent',
+                color: 'rgba(255, 255, 255, 0.8)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                borderRadius: 12,
+                fontSize: 14,
+                cursor: 'pointer',
+                marginTop: 12,
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.color = 'white'}
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255, 255, 255, 0.8)'}
+            >
+              ← Back to Login
+            </button>
+          )}
         </form>
 
-        {/* Divider */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 16,
-            margin: '28px 0 20px',
-            color: 'rgba(255, 255, 255, 0.5)',
-            fontSize: 12,
-          }}
-        >
-          <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.2)' }} />
-          OR
-          <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.2)' }} />
-        </div>
+        {/* Divider & Google sign-in & Signup link - only if not showing OTP verification */}
+        {!showOtpInput && (
+          <>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 16,
+                margin: '28px 0 20px',
+                color: 'rgba(255, 255, 255, 0.5)',
+                fontSize: 12,
+              }}
+            >
+              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.2)' }} />
+              OR
+              <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.2)' }} />
+            </div>
 
-        {/* Google Sign-In */}
-        <GoogleAuthButton label="Sign in with Google" darkMode={true} mode="login" />
+            <GoogleAuthButton label="Sign in with Google" darkMode={true} mode="login" />
 
-        {/* Signup link */}
-        <p style={{ textAlign: 'center', fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 24 }}>
-          Don't have an account?{' '}
-          <Link
-            to="/signup"
-            style={{
-              color: 'white',
-              textDecoration: 'none',
-              fontWeight: 700,
-              borderBottom: '1px solid rgba(255,255,255,0.4)',
-              paddingBottom: 1,
-              transition: 'border-color 0.2s',
-            }}
-            onMouseEnter={e => e.currentTarget.style.borderColor = 'white'}
-            onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)'}
-          >
-            Sign up free
-          </Link>
-        </p>
+            <p style={{ textAlign: 'center', fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 24 }}>
+              Don't have an account?{' '}
+              <Link
+                to="/signup"
+                style={{
+                  color: 'white',
+                  textDecoration: 'none',
+                  fontWeight: 700,
+                  borderBottom: '1px solid rgba(255,255,255,0.4)',
+                  paddingBottom: 1,
+                  transition: 'border-color 0.2s',
+                }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = 'white'}
+                onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)'}
+              >
+                Sign up free
+              </Link>
+            </p>
+          </>
+        )}
 
         {/* Back to home */}
         <p style={{ textAlign: 'center', marginTop: 16 }}>
@@ -448,7 +560,7 @@ export default function LoginPage() {
               transition: 'color 0.2s',
             }}
             onMouseEnter={e => e.currentTarget.style.color = 'white'}
-            onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.6)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'rgba(255, 255, 255, 0.6)'}
           >
             ← Back to Home
           </Link>

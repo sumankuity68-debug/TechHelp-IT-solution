@@ -196,3 +196,49 @@ export const usersAPI = {
       body: JSON.stringify(data),
     }).then(handleResponse),
 };
+
+// ═══════════════════════════════════════════════════════════════════════
+// EXPERTS
+// ═══════════════════════════════════════════════════════════════════════
+export const expertsAPI = {
+  getAll: () =>
+    fetch(`${BASE}/experts`).then(handleResponse),
+
+  create: (expert) =>
+    fetch(`${BASE}/experts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+      body: JSON.stringify(expert),
+    }).then(handleResponse),
+
+  update: (id, expert) =>
+    fetch(`${BASE}/experts/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+      body: JSON.stringify(expert),
+    }).then(handleResponse),
+
+  delete: (id) =>
+    fetch(`${BASE}/experts/${id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+    }).then(handleResponse),
+
+  approve: (id) =>
+    fetch(`${BASE}/experts/${id}/approve`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+    }).then(handleResponse),
+
+  getMyInquiries: () =>
+    fetch(`${BASE}/experts/my-inquiries`, {
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+    }).then(handleResponse),
+
+  updateInquiryStatus: (id, status) =>
+    fetch(`${BASE}/experts/inquiries/${id}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+      body: JSON.stringify({ status }),
+    }).then(handleResponse),
+};

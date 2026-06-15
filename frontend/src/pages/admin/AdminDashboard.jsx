@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useToast } from '../../context/ToastContext';
 import usePagination from '../../hooks/usePagination';
-import { contactAPI, usersAPI, servicesAPI } from '../../utils/api';
+import { contactAPI, usersAPI, servicesAPI, expertsAPI } from '../../utils/api';
 
 export default function AdminDashboard() {
   const { user, logout, token } = useAuth();
@@ -17,10 +17,12 @@ export default function AdminDashboard() {
     totalUsers: 0,
     totalContacts: 0,
     totalServices: 0,
+    totalExperts: 0,
     pendingInquiries: 0,
   });
   const [recentContacts, setRecentContacts] = useState([]);
   const [services, setServices] = useState([]);
+  const [experts, setExperts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // usePagination custom hook for inquiries (contacts)
@@ -41,7 +43,19 @@ export default function AdminDashboard() {
     title: '',
     description: '',
     tags: '',
+    expert: '',
     isActive: true,
+  });
+
+  // Expert modal states
+  const [showExpertModal, setShowExpertModal] = useState(false);
+  const [editingExpert, setEditingExpert] = useState(null);
+  const [expertForm, setExpertForm] = useState({
+    name: '',
+    role: '',
+    email: '',
+    phone: '',
+    accessCode: '',
   });
 
   // User modal states
@@ -60,10 +74,11 @@ export default function AdminDashboard() {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const [contactData, servicesData, usersData] = await Promise.all([
+      const [contactData, servicesData, usersData, expertsData] = await Promise.all([
         contactAPI.getAll({ limit: 100 }), // Get enough entries to compute stats/recent
         servicesAPI.getAll(),
         usersAPI.getAll({ limit: 1 }), // Just query for total user count
+        expertsAPI.getAll(),
       ]);
 
       if (contactData.success) {
@@ -82,6 +97,11 @@ export default function AdminDashboard() {
 
       if (usersData.success) {
         setStats(prev => ({ ...prev, totalUsers: usersData.pagination?.total || usersData.count }));
+      }
+
+      if (expertsData.success) {
+        setExperts(expertsData.data);
+        setStats(prev => ({ ...prev, totalExperts: expertsData.count || expertsData.data.length }));
       }
 
     } catch (error) {
@@ -306,6 +326,7 @@ export default function AdminDashboard() {
       title: '',
       description: '',
       tags: '',
+      expert: '',
       isActive: true,
     });
     setShowServiceModal(true);
@@ -318,6 +339,7 @@ export default function AdminDashboard() {
       title: service.title || '',
       description: service.description || '',
       tags: service.tags ? service.tags.join(', ') : '',
+      expert: service.expert?._id || service.expert || '',
       isActive: service.isActive !== undefined ? service.isActive : true,
     });
     setShowServiceModal(true);
@@ -330,6 +352,7 @@ export default function AdminDashboard() {
       title: serviceForm.title,
       description: serviceForm.description,
       tags: serviceForm.tags ? serviceForm.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+      expert: serviceForm.expert || null,
       isActive: serviceForm.isActive,
     };
 
@@ -346,6 +369,72 @@ export default function AdminDashboard() {
     } catch (error) {
       console.error('Error saving service:', error);
       showError(error.message || 'Failed to save service');
+    }
+  };
+
+  // Expert Management Actions
+  const handleApproveExpert = async (id) => {
+    try {
+      await expertsAPI.approve(id);
+      showSuccess('Expert approved successfully');
+      fetchDashboardData();
+    } catch (error) {
+      console.error('Error approving expert:', error);
+      showError(error.message || 'Failed to approve expert');
+    }
+  };
+
+  const handleDeleteExpert = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this expert?')) return;
+    try {
+      await expertsAPI.delete(id);
+      showSuccess('Expert deleted successfully');
+      fetchDashboardData();
+    } catch (error) {
+      console.error('Error deleting expert:', error);
+      showError(error.message || 'Failed to delete expert');
+    }
+  };
+
+  const handleOpenAddExpert = () => {
+    setEditingExpert(null);
+    setExpertForm({
+      name: '',
+      role: '',
+      email: '',
+      phone: '',
+      accessCode: '',
+    });
+    setShowExpertModal(true);
+  };
+
+  const handleOpenEditExpert = (exp) => {
+    setEditingExpert(exp);
+    setExpertForm({
+      name: exp.name || '',
+      role: exp.role || '',
+      email: exp.email || '',
+      phone: exp.phone || '',
+      accessCode: exp.accessCode || '',
+    });
+    setShowExpertModal(true);
+  };
+
+  const handleSaveExpert = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingExpert) {
+        await expertsAPI.update(editingExpert._id, expertForm);
+        showSuccess('Expert updated successfully');
+      } else {
+        await expertsAPI.create(expertForm);
+        showSuccess('Expert created successfully');
+      }
+      setShowExpertModal(false);
+      fetchDashboardData();
+    } catch (error) {
+      console.error('Error saving expert:', error);
+      showError(error.message || 'Failed to save expert');
     }
   };
 
@@ -470,6 +559,7 @@ export default function AdminDashboard() {
           { id: 'overview', label: 'Overview', icon: '📊' },
           { id: 'inquiries', label: 'Inquiries', icon: '📧' },
           { id: 'services', label: 'Services', icon: '⚙️' },
+          { id: 'experts', label: 'Experts', icon: '👨‍💼' },
           { id: 'users', label: 'Users', icon: '👥' },
         ].map(tab => (
           <button
@@ -534,6 +624,7 @@ export default function AdminDashboard() {
                     { label: 'Total Inquiries', value: stats.totalContacts },
                     { label: 'Pending Inquiries', value: stats.pendingInquiries },
                     { label: 'Total Services', value: stats.totalServices },
+                    { label: 'Total Experts', value: stats.totalExperts },
                     { label: 'Total Users', value: stats.totalUsers },
                   ].map((s, idx) => (
                     <div key={idx} style={{
@@ -563,7 +654,7 @@ export default function AdminDashboard() {
                   <h3 style={{ color: 'var(--dash-text-primary)', fontSize: 16, marginBottom: '1rem', transition: 'color 0.3s ease' }}>
                     Recent Inquiries
                   </h3>
-                  {contacts.slice(0, 5).map(contact => (
+                  {recentContacts.map(contact => (
                     <div
                       key={contact._id}
                       style={{
@@ -1062,6 +1153,195 @@ export default function AdminDashboard() {
                 )}
               </div>
             )}
+
+            {activeTab === 'experts' && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                  <h2 style={{ color: 'var(--dash-text-primary)', fontSize: 22, margin: 0, transition: 'color 0.3s ease' }}>
+                    Experts Management ({experts.length})
+                  </h2>
+                  <button
+                    onClick={handleOpenAddExpert}
+                    style={{
+                      background: 'var(--dash-btn-pro-bg)',
+                      color: 'var(--dash-btn-pro-text)',
+                      border: 'none',
+                      padding: '10px 18px',
+                      borderRadius: 10,
+                      fontSize: 14,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    ➕ Add Expert
+                  </button>
+                </div>
+
+                {experts.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--dash-text-muted)' }}>
+                    <p style={{ fontSize: 18, marginBottom: '8px' }}>👤</p>
+                    <p>No experts found</p>
+                  </div>
+                ) : (
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                    gap: '1rem',
+                  }}>
+                    {experts.map(exp => (
+                      <div
+                        key={exp._id}
+                        style={{
+                          background: 'var(--dash-card-bg)',
+                          border: 'var(--dash-card-border)',
+                          borderRadius: 12,
+                          padding: '1.5rem',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'space-between',
+                          minHeight: '200px',
+                          transition: 'all 0.3s ease',
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                            <div style={{
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '50%',
+                              background: 'var(--dash-avatar-bg)',
+                              color: 'var(--dash-text-primary)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '14px',
+                              fontWeight: '700',
+                              border: 'var(--dash-card-border)',
+                            }}>
+                              {exp.name ? exp.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'EX'}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                                <h3 style={{ color: 'var(--dash-text-primary)', fontSize: 16, margin: 0, fontWeight: '600' }}>
+                                  {exp.name}
+                                </h3>
+                                {exp.isApproved === false ? (
+                                  <span style={{
+                                    fontSize: '10px',
+                                    fontWeight: '600',
+                                    color: '#f59e0b',
+                                    background: 'rgba(245, 158, 11, 0.15)',
+                                    padding: '2px 8px',
+                                    borderRadius: '12px',
+                                    whiteSpace: 'nowrap',
+                                  }}>
+                                    Pending
+                                  </span>
+                                ) : (
+                                  <span style={{
+                                    fontSize: '10px',
+                                    fontWeight: '600',
+                                    color: '#10b981',
+                                    background: 'rgba(16, 185, 129, 0.15)',
+                                    padding: '2px 8px',
+                                    borderRadius: '12px',
+                                    whiteSpace: 'nowrap',
+                                  }}>
+                                    Approved
+                                  </span>
+                                )}
+                              </div>
+                              <p style={{ color: 'var(--dash-text-secondary)', fontSize: 12, margin: '2px 0 0 0' }}>
+                                {exp.role}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: 13, color: 'var(--dash-text-secondary)', marginBottom: '1.5rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span>📧</span>
+                              <span style={{ wordBreak: 'break-all' }}>{exp.email}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span>📞</span>
+                              <span>{exp.phone}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', borderTop: 'var(--dash-card-border)', paddingTop: '12px' }}>
+                          {exp.isApproved === false && (
+                            <button
+                              onClick={() => handleApproveExpert(exp._id)}
+                              style={{
+                                width: '100%',
+                                background: 'rgba(16, 185, 129, 0.15)',
+                                border: '1px solid rgba(16, 185, 129, 0.3)',
+                                color: '#10b981',
+                                padding: '8px 12px',
+                                borderRadius: 6,
+                                fontSize: 13,
+                                fontWeight: '600',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                              }}
+                              onMouseEnter={e => {
+                                e.currentTarget.style.background = 'rgba(16, 185, 129, 0.25)';
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.background = 'rgba(16, 185, 129, 0.15)';
+                              }}
+                            >
+                              ✅ Approve Expert
+                            </button>
+                          )}
+                          <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
+                            <button
+                              onClick={() => handleOpenEditExpert(exp)}
+                              style={{
+                                flex: 1,
+                                background: 'var(--dash-btn-bg)',
+                                border: 'var(--dash-btn-border)',
+                                color: 'var(--dash-btn-text)',
+                                padding: '8px 12px',
+                                borderRadius: 6,
+                                fontSize: 13,
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                              }}
+                            >
+                              ✏️ Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteExpert(exp._id)}
+                              style={{
+                                flex: 1,
+                                background: 'rgba(239, 68, 68, 0.1)',
+                                border: '1px solid rgba(239, 68, 68, 0.3)',
+                                color: '#ef4444',
+                                padding: '8px 12px',
+                                borderRadius: 6,
+                                fontSize: 13,
+                                fontWeight: 500,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                              }}
+                            >
+                              🗑️ Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </>
         )}
       </div>
@@ -1253,6 +1533,28 @@ export default function AdminDashboard() {
                 />
               </div>
 
+              <div>
+                <label style={{ display: 'block', fontSize: 12, color: 'var(--dash-text-muted)', marginBottom: 6, fontWeight: 600 }}>Assigned Expert</label>
+                <select
+                  value={serviceForm.expert}
+                  onChange={e => setServiceForm(prev => ({ ...prev, expert: e.target.value }))}
+                  style={{
+                    width: '100%', padding: '10px 12px',
+                    background: 'var(--dash-list-item-bg)',
+                    border: 'var(--dash-card-border)',
+                    borderRadius: 8, color: 'var(--dash-text-primary)',
+                    fontSize: 14, outline: 'none', cursor: 'pointer',
+                  }}
+                >
+                  <option value="" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Select an expert...</option>
+                  {experts.map(exp => (
+                    <option key={exp._id} value={exp._id} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+                      {exp.name} ({exp.role})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <input
                   type="checkbox"
@@ -1430,6 +1732,173 @@ export default function AdminDashboard() {
                   }}
                 >
                   Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Experts Modal */}
+      {showExpertModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.6)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1.5rem',
+        }} onClick={() => setShowExpertModal(false)}>
+          <div style={{
+            background: 'var(--dash-card-bg)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            border: 'var(--dash-card-border)',
+            borderRadius: 16,
+            padding: '2rem',
+            width: '100%',
+            maxWidth: 450,
+            boxShadow: 'var(--dash-card-shadow)',
+            transition: 'all 0.3s ease',
+            animation: 'modalIn 0.2s ease',
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ fontSize: 20, fontWeight: 700, color: 'var(--dash-text-primary)', margin: 0 }}>
+                {editingExpert ? '✏️ Edit Expert Details' : '✨ Add New Expert'}
+              </h3>
+              <button onClick={() => setShowExpertModal(false)} aria-label="Close" style={{
+                background: 'none', border: 'none', color: 'var(--dash-text-secondary)', fontSize: 20, cursor: 'pointer', outline: 'none'
+              }}>×</button>
+            </div>
+
+            <form onSubmit={handleSaveExpert} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, color: 'var(--dash-text-muted)', marginBottom: 6, fontWeight: 600 }}>Full Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Prietish Patahk"
+                  value={expertForm.name}
+                  onChange={e => setExpertForm(prev => ({ ...prev, name: e.target.value }))}
+                  style={{
+                    width: '100%', padding: '10px 12px',
+                    background: 'var(--dash-list-item-bg)',
+                    border: 'var(--dash-card-border)',
+                    borderRadius: 8, color: 'var(--dash-text-primary)',
+                    fontSize: 14, outline: 'none',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, color: 'var(--dash-text-muted)', marginBottom: 6, fontWeight: 600 }}>Role / Area of Expertise</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Senior Full-Stack Engineer"
+                  value={expertForm.role}
+                  onChange={e => setExpertForm(prev => ({ ...prev, role: e.target.value }))}
+                  style={{
+                    width: '100%', padding: '10px 12px',
+                    background: 'var(--dash-list-item-bg)',
+                    border: 'var(--dash-card-border)',
+                    borderRadius: 8, color: 'var(--dash-text-primary)',
+                    fontSize: 14, outline: 'none',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, color: 'var(--dash-text-muted)', marginBottom: 6, fontWeight: 600 }}>Email Address</label>
+                <input
+                  type="email"
+                  required
+                  placeholder="prietish12@gmail.com"
+                  value={expertForm.email}
+                  onChange={e => setExpertForm(prev => ({ ...prev, email: e.target.value }))}
+                  style={{
+                    width: '100%', padding: '10px 12px',
+                    background: 'var(--dash-list-item-bg)',
+                    border: 'var(--dash-card-border)',
+                    borderRadius: 8, color: 'var(--dash-text-primary)',
+                    fontSize: 14, outline: 'none',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, color: 'var(--dash-text-muted)', marginBottom: 6, fontWeight: 600 }}>Phone Number</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="91 75950 42847"
+                  value={expertForm.phone}
+                  onChange={e => setExpertForm(prev => ({ ...prev, phone: e.target.value }))}
+                  style={{
+                    width: '100%', padding: '10px 12px',
+                    background: 'var(--dash-list-item-bg)',
+                    border: 'var(--dash-card-border)',
+                    borderRadius: 8, color: 'var(--dash-text-primary)',
+                    fontSize: 14, outline: 'none',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, color: 'var(--dash-text-muted)', marginBottom: 6, fontWeight: 600 }}>Access Code (Login Password)</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. prietish123"
+                  value={expertForm.accessCode}
+                  onChange={e => setExpertForm(prev => ({ ...prev, accessCode: e.target.value }))}
+                  style={{
+                    width: '100%', padding: '10px 12px',
+                    background: 'var(--dash-list-item-bg)',
+                    border: 'var(--dash-card-border)',
+                    borderRadius: 8, color: 'var(--dash-text-primary)',
+                    fontSize: 14, outline: 'none',
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowExpertModal(false)}
+                  style={{
+                    flex: 1,
+                    background: 'var(--dash-btn-bg)',
+                    border: 'var(--dash-btn-border)',
+                    color: 'var(--dash-text-secondary)',
+                    padding: '12px',
+                    borderRadius: 10,
+                    fontSize: 14,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{
+                    flex: 1,
+                    background: 'var(--dash-btn-pro-bg)',
+                    border: 'none',
+                    color: 'var(--dash-btn-pro-text)',
+                    padding: '12px',
+                    borderRadius: 10,
+                    fontSize: 14,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Save Expert
                 </button>
               </div>
             </form>

@@ -7,7 +7,7 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
-export default function ProtectedRoute({ children, requireAdmin = false }) {
+export default function ProtectedRoute({ children, requireAdmin = false, requireExpert = false }) {
   const { user, loading } = useAuth();
 
   // Show loading spinner while checking auth
@@ -48,6 +48,11 @@ export default function ProtectedRoute({ children, requireAdmin = false }) {
 
   // Check admin requirement
   if (requireAdmin && user.role !== 'admin') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // Check expert requirement
+  if (requireExpert && user.role !== 'expert' && user.role !== 'admin') {
     return <Navigate to="/dashboard" replace />;
   }
 

@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
-import { contactAPI } from '../../utils/api';
+import { contactAPI, expertsAPI } from '../../utils/api';
 import {
   fadeInUp,
   fadeIn,
@@ -19,7 +19,15 @@ import {
 
 export default function Contact() {
   const { user, token } = useAuth();
-  const [form, setForm] = useState({ name: user?.name || '', email: user?.email || '', service: '', message: '' });
+  const [form, setForm] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+    service: '',
+    message: '',
+    expertId: '',
+    preferences: ''
+  });
+  const [experts, setExperts] = useState([]);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -41,6 +49,16 @@ export default function Contact() {
     }
   }, []);
 
+  useEffect(() => {
+    expertsAPI.getAll()
+      .then(res => {
+        if (res.success) {
+          setExperts(res.data || []);
+        }
+      })
+      .catch(err => console.error('Error fetching experts:', err));
+  }, []);
+
   const handleChange = (e) => {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
@@ -54,7 +72,14 @@ export default function Contact() {
       // Use centralized contactAPI instead of raw fetch
       await contactAPI.submit(form);
       setSubmitted(true);
-      setForm({ name: user?.name || '', email: user?.email || '', service: '', message: '' });
+      setForm({
+        name: user?.name || '',
+        email: user?.email || '',
+        service: '',
+        message: '',
+        expertId: '',
+        preferences: ''
+      });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -271,22 +296,56 @@ export default function Contact() {
                   </div>
                 </div>
 
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }} className="form-service-expert">
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                      Service Needed
+                    </label>
+                    <select
+                      name="service" value={form.service} onChange={handleChange}
+                      style={{ ...inputStyle, cursor: 'pointer' }}
+                      onFocus={e => e.target.style.borderColor = 'var(--accent-color)'}
+                      onBlur={e => e.target.style.borderColor = 'var(--border-color)'}
+                    >
+                      <option value="" style={{ background: 'var(--bg-secondary)' }}>Select a service...</option>
+                      <option value="web" style={{ background: 'var(--bg-secondary)' }}>Web Development</option>
+                      <option value="app" style={{ background: 'var(--bg-secondary)' }}>App Development</option>
+                      <option value="design" style={{ background: 'var(--bg-secondary)' }}>UI/UX Design</option>
+                      <option value="marketing" style={{ background: 'var(--bg-secondary)' }}>Digital Marketing</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                      Preferred Expert
+                    </label>
+                    <select
+                      name="expertId" value={form.expertId} onChange={handleChange}
+                      style={{ ...inputStyle, cursor: 'pointer' }}
+                      onFocus={e => e.target.style.borderColor = 'var(--accent-color)'}
+                      onBlur={e => e.target.style.borderColor = 'var(--border-color)'}
+                    >
+                      <option value="" style={{ background: 'var(--bg-secondary)' }}>Choose an expert (optional)...</option>
+                      {experts.map(exp => (
+                        <option key={exp._id} value={exp._id} style={{ background: 'var(--bg-secondary)' }}>
+                          {exp.name} - {exp.role}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
                 <div style={{ marginBottom: 20 }}>
                   <label style={{ display: 'block', fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                    Service Needed
+                    Tech Preferences / Frameworks
                   </label>
-                  <select
-                    name="service" value={form.service} onChange={handleChange}
-                    style={{ ...inputStyle, cursor: 'pointer' }}
+                  <input
+                    name="preferences" type="text"
+                    placeholder="e.g. React, Node.js, Python, Figma (optional)"
+                    value={form.preferences} onChange={handleChange}
+                    style={inputStyle}
                     onFocus={e => e.target.style.borderColor = 'var(--accent-color)'}
                     onBlur={e => e.target.style.borderColor = 'var(--border-color)'}
-                  >
-                    <option value="" style={{ background: 'var(--bg-secondary)' }}>Select a service...</option>
-                    <option value="web" style={{ background: 'var(--bg-secondary)' }}>Web Development</option>
-                    <option value="app" style={{ background: 'var(--bg-secondary)' }}>App Development</option>
-                    <option value="design" style={{ background: 'var(--bg-secondary)' }}>UI/UX Design</option>
-                    <option value="marketing" style={{ background: 'var(--bg-secondary)' }}>Digital Marketing</option>
-                  </select>
+                  />
                 </div>
 
                 <div style={{ marginBottom: 32 }}>
@@ -346,6 +405,10 @@ export default function Contact() {
             gap: 40px !important;
           }
           .form-name-email {
+            grid-template-columns: 1fr !important;
+            gap: 20px !important;
+          }
+          .form-service-expert {
             grid-template-columns: 1fr !important;
             gap: 20px !important;
           }

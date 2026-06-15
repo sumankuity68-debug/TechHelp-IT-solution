@@ -30,6 +30,7 @@ const ForgotPasswordPage = React.lazy(() => import('./pages/auth/ForgotPasswordP
 const ResetPasswordPage  = React.lazy(() => import('./pages/auth/ResetPasswordPage'));
 const VerifyEmailPage    = React.lazy(() => import('./pages/auth/VerifyEmailPage'));
 const UserDashboard      = React.lazy(() => import('./pages/dashboard/UserDashboard'));
+const ExpertDashboard    = React.lazy(() => import('./pages/dashboard/ExpertDashboard'));
 const ProfilePage        = React.lazy(() => import('./pages/ProfilePage'));
 const AdminDashboard     = React.lazy(() => import('./pages/admin/AdminDashboard'));
 const NotFoundPage       = React.lazy(() => import('./pages/NotFoundPage'));
@@ -70,6 +71,16 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <Layout><Suspense fallback={<DashboardPageSkeleton />}><UserDashboard /></Suspense></Layout>
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  {/* Protected routes - Expert Dashboard */}
+                  <Route
+                    path="/expert/dashboard"
+                    element={
+                      <ProtectedRoute requireExpert={true}>
+                        <Layout><Suspense fallback={<DashboardPageSkeleton />}><ExpertDashboard /></Suspense></Layout>
                       </ProtectedRoute>
                     }
                   />

@@ -20,6 +20,14 @@ const contactSchema = new mongoose.Schema(
       trim: true,
       maxlength: [200, 'Subject cannot exceed 200 characters'],
     },
+    service: {
+      type: String,
+      trim: true,
+    },
+    expert: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Expert',
+    },
     message: {
       type: String,
       required: [true, 'Message is required'],
@@ -29,6 +37,11 @@ const contactSchema = new mongoose.Schema(
       type: String,
       enum: ['new', 'read', 'resolved'],
       default: 'new',
+    },
+    preferences: {
+      type: String,
+      trim: true,
+      maxlength: [500, 'Preferences cannot exceed 500 characters'],
     },
   },
   { timestamps: true }

@@ -9,20 +9,23 @@ process.env.JWT_SECRET = 'test_secret_for_auth_integration_tests';
 // Import the app
 import { app } from '../index.js';
 import User from '../src/models/user.js';
+import Expert from '../src/models/expert.js';
 
 describe('Auth Endpoints Integration Tests', () => {
-  // Clear the users collection before and after tests
+  // Clear collections before and after tests
   beforeEach(async () => {
     if (mongoose.connection.readyState !== 1) {
       await new Promise((resolve) => mongoose.connection.once('open', resolve));
     }
     await User.deleteMany({});
-  });
+    await Expert.deleteMany({});
+  }, 30000);
 
   afterAll(async () => {
     await User.deleteMany({});
+    await Expert.deleteMany({});
     await mongoose.connection.close();
-  });
+  }, 30000);
 
   const testUser = {
     name: 'Testy Testerson',
@@ -159,5 +162,63 @@ describe('Auth Endpoints Integration Tests', () => {
     expect(res.statusCode).toBe(401);
     expect(res.body.success).toBe(false);
     expect(res.body.message).toMatch(/not authorized/i);
+  });
+
+  // Expert registration and approval integration tests
+  it('should register a new expert successfully with requiresApproval: true', async () => {
+    const expertSignup = {
+      name: 'Expert Jane',
+      email: 'jane.expert@example.com',
+      phone: '+919999999999',
+      password: 'password123',
+      role: 'expert',
+      expertise: 'Vite and React Specialist'
+    };
+
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send(expertSignup);
+
+    expect(res.statusCode).toBe(201);
+    expect(res.body.success).toBe(true);
+    expect(res.body.requiresApproval).toBe(true);
+
+    const dbUser = await User.findOne({ email: expertSignup.email.toLowerCase() });
+    expect(dbUser).toBeDefined();
+    expect(dbUser.role).toBe('expert');
+    expect(dbUser.isVerified).toBe(false);
+
+    const dbExpert = await Expert.findOne({ email: expertSignup.email.toLowerCase() });
+    expect(dbExpert).toBeDefined();
+    expect(dbExpert.role).toBe('Vite and React Specialist');
+    expect(dbExpert.isApproved).toBe(false);
+  });
+
+  it('should fail login for unapproved expert with requiresApproval: true', async () => {
+    const expertSignup = {
+      name: 'Expert Jane',
+      email: 'jane.expert@example.com',
+      phone: '+919999999999',
+      password: 'password123',
+      role: 'expert',
+      expertise: 'Vite and React Specialist'
+    };
+
+    // Register expert
+    await request(app)
+      .post('/api/auth/register')
+      .send(expertSignup);
+
+    // Attempt login
+    const res = await request(app)
+      .post('/api/auth/login')
+      .send({
+        email: expertSignup.email,
+        password: expertSignup.password,
+      });
+
+    expect(res.statusCode).toBe(403);
+    expect(res.body.success).toBe(false);
+    expect(res.body.requiresApproval).toBe(true);
   });
 });

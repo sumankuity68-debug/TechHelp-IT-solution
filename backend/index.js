@@ -8,6 +8,7 @@ import contactRoutes from './src/routes/contact.routes.js';
 import servicesRoutes from './src/routes/services.routes.js';
 import testimonialRoutes from './src/routes/testimonial.routes.js';
 import userRoutes from './src/routes/user.routes.js';
+import expertRoutes from './src/routes/expert.routes.js';
 import { apiLimiter } from './src/middleware/rateLimiter.js';
 
 dotenv.config();
@@ -45,6 +46,7 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/services', servicesRoutes);
 app.use('/api/testimonials', testimonialRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/experts', expertRoutes);
 
 app.get('/api/health', (req, res) => {
     res.status(200).json({

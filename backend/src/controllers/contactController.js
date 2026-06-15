@@ -1,4 +1,7 @@
 import Contact from '../models/contact.js';
+import Expert from '../models/expert.js';
+import Service from '../models/service.js';
+import sendEmail from '../utils/sendEmail.js';
 import { paginate, parsePaginationParams } from '../utils/paginate.js';
 
 // @desc    Get contacts submitted by the logged-in user (matched by email)
@@ -22,7 +25,7 @@ export const getMyContacts = async (req, res) => {
 
 export const submitContact = async (req, res) => {
   try {
-    const { name, email, service, message } = req.body;
+    const { name, email, service, message, expertId, preferences } = req.body;
 
     if (!name || !email || !service || !message) {
       return res.status(400).json({
@@ -31,12 +34,69 @@ export const submitContact = async (req, res) => {
       });
     }
 
-    const contact = await Contact.create({
+    // Resolve expert
+    let expert = null;
+    if (expertId) {
+      expert = await Expert.findById(expertId);
+    } else {
+      // Find service with this title or number
+      const serviceDoc = await Service.findOne({
+        $or: [{ title: service }, { num: service }]
+      }).populate('expert');
+      
+      if (serviceDoc && serviceDoc.expert) {
+        expert = serviceDoc.expert;
+      }
+    }
+
+    const contactData = {
       name,
       email,
       service,
       message,
-    });
+      preferences,
+    };
+
+    if (expert) {
+      contactData.expert = expert._id;
+    }
+
+    const contact = await Contact.create(contactData);
+
+    // Route email directly to expert
+    if (expert && expert.email) {
+      try {
+        await sendEmail({
+          email: expert.email,
+          subject: `TechHelp Inquiry: Dynamic Query for ${service} from ${name}`,
+          html: `
+            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 24px; color: #1e293b; background-color: #f8fafc; border-radius: 12px; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0;">
+              <h2 style="color: #4f46e5; margin-top: 0; font-size: 20px; font-weight: 700; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">New Inquiry Received</h2>
+              <p style="font-size: 15px; line-height: 1.6;">Hello <strong style="color: #0f172a;">${expert.name}</strong>,</p>
+              <p style="font-size: 15px; line-height: 1.6; color: #475569;">You have received a new inquiry from a user regarding your specialized service area <strong>(${expert.role})</strong>.</p>
+              
+              <div style="background-color: #ffffff; padding: 18px; border-radius: 8px; margin: 20px 0; border: 1px solid #cbd5e1;">
+                <p style="margin: 0 0 8px 0; font-size: 14px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Client Details</p>
+                <p style="margin: 0 0 6px 0; font-size: 15px;"><strong style="color: #0f172a;">Name:</strong> ${name}</p>
+                <p style="margin: 0 0 6px 0; font-size: 15px;"><strong style="color: #0f172a;">Email:</strong> <a href="mailto:${email}" style="color: #4f46e5; text-decoration: none;">${email}</a></p>
+                <p style="margin: 0 0 6px 0; font-size: 15px;"><strong style="color: #0f172a;">Service Area:</strong> ${service}</p>
+                ${preferences ? `<p style="margin: 0; font-size: 15px;"><strong style="color: #0f172a;">Tech Preferences:</strong> ${preferences}</p>` : ''}
+              </div>
+
+              <div style="background-color: #ffffff; padding: 18px; border-radius: 8px; border-left: 4px solid #4f46e5; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                <p style="margin: 0 0 8px 0; font-size: 14px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600;">Message Content</p>
+                <p style="margin: 0; font-size: 15px; line-height: 1.6; color: #334155; white-space: pre-line;">${message}</p>
+              </div>
+              
+              <p style="font-size: 12px; color: #94a3b8; text-align: center; margin-top: 32px; border-top: 1px solid #e2e8f0; padding-top: 16px;">This is an automated notification from CareerNest/TechHelp solutions dashboard.</p>
+            </div>
+          `,
+        });
+        console.log(`📧 Query routed successfully to expert email: ${expert.email}`);
+      } catch (mailErr) {
+        console.error(`❌ Email routing to expert failed: ${mailErr.message}`);
+      }
+    }
 
     res.status(201).json({
       success: true,

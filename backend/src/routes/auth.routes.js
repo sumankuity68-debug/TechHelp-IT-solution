@@ -1,5 +1,5 @@
 import express from 'express';
-import { register, login, getMe, updateProfile, forgotPassword, resetPassword, resetPasswordOTP, findAccount, verifyEmail, resendVerification, changePassword, googleAuth, googleTokenAuth, googleSignupAuth } from '../controllers/authcontroller.js';
+import { register, login, getMe, updateProfile, forgotPassword, resetPassword, resetPasswordOTP, findAccount, verifyEmail, resendVerification, changePassword, googleAuth, googleTokenAuth, googleSignupAuth, verifyExpertLogin } from '../controllers/authcontroller.js';
 import { protect } from '../middleware/auth.js';
 import { authLimiter, passwordResetLimiter } from '../middleware/rateLimiter.js';
 import { validate } from '../middleware/validate.js';
@@ -26,6 +26,14 @@ router.post('/login', authLimiter,
     validators.minLength('password', 1),
   ),
   login
+);
+
+router.post('/verify-expert-login', authLimiter,
+  validate(
+    validators.required(['email', 'otp']),
+    validators.isEmail('email'),
+  ),
+  verifyExpertLogin
 );
 
 router.post('/google', authLimiter, googleAuth);

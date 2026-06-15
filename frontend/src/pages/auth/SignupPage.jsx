@@ -14,7 +14,8 @@ const initialState = {
     password: '',
     confirm: '',
     role: 'user',
-    adminCode: ''
+    adminCode: '',
+    expertise: ''
   },
   error: '',
   loading: false
@@ -107,6 +108,11 @@ export default function SignupPage() {
       return;
     }
 
+    if (form.role === 'expert' && !form.expertise) {
+      dispatch({ type: 'SET_ERROR', value: 'Area of Expertise is required' });
+      return;
+    }
+
     dispatch({ type: 'START_LOADING' });
 
     try {
@@ -120,6 +126,7 @@ export default function SignupPage() {
           password: form.password,
           role: form.role,
           adminCode: form.role === 'admin' ? form.adminCode : undefined,
+          expertise: form.role === 'expert' ? form.expertise : undefined,
         }),
       });
 
@@ -129,7 +136,12 @@ export default function SignupPage() {
         throw new Error(data.message || 'Registration failed');
       }
 
-      dispatch({ type: 'REGISTRATION_SUCCESS', email: form.email });
+      if (data.requiresApproval) {
+        dispatch({ type: 'SET_EMAIL', value: form.email });
+        dispatch({ type: 'SET_STEP', value: 3 });
+      } else {
+        dispatch({ type: 'REGISTRATION_SUCCESS', email: form.email });
+      }
     } catch (err) {
       dispatch({ type: 'SET_ERROR', value: err.message });
     } finally {
@@ -564,6 +576,30 @@ export default function SignupPage() {
                   <label style={{
                     flex: 1,
                     padding: '12px 16px',
+                    border: form.role === 'expert' ? '2px solid rgba(255,255,255,0.7)' : '1px solid rgba(255,255,255,0.25)',
+                    borderRadius: 12,
+                    cursor: 'pointer',
+                    background: form.role === 'expert' ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.08)',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}>
+                    <input
+                      type="radio"
+                      name="role"
+                      value="expert"
+                      checked={form.role === 'expert'}
+                      onChange={handleChange}
+                      style={{ width: 16, height: 16 }}
+                    />
+                    <span style={{ fontSize: 14, fontWeight: 500, color: 'white' }}>
+                      Expert
+                    </span>
+                  </label>
+                  <label style={{
+                    flex: 1,
+                    padding: '12px 16px',
                     border: form.role === 'admin' ? '2px solid rgba(255,255,255,0.7)' : '1px solid rgba(255,255,255,0.25)',
                     borderRadius: 12,
                     cursor: 'pointer',
@@ -631,6 +667,51 @@ export default function SignupPage() {
                   />
                   <p style={{ fontSize: 11, color: 'rgba(255, 255, 255, 0.6)', marginTop: 8, fontStyle: 'italic' }}>
                     ⚠️ Only authorized personnel have access to the admin code. Contact your administrator if needed.
+                  </p>
+                </div>
+              )}
+
+              {/* Area of Expertise (shows only when expert is selected) */}
+              {form.role === 'expert' && (
+                <div style={{
+                  marginBottom: 24,
+                  padding: '16px',
+                  background: 'rgba(255, 255, 255, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: 12,
+                }}>
+                  <label style={{
+                    display: 'block',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: 'rgba(255, 255, 255, 0.85)',
+                    marginBottom: 8,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.07em',
+                  }}>
+                    💼 Area of Expertise
+                  </label>
+                  <input
+                    name="expertise"
+                    type="text"
+                    required
+                    placeholder="e.g. Senior Full-Stack Engineer"
+                    value={form.expertise}
+                    onChange={handleChange}
+                    style={{
+                      width: '100%',
+                      padding: '13px 15px',
+                      background: 'rgba(255, 255, 255, 0.12)',
+                      border: '1px solid rgba(255, 255, 255, 0.25)',
+                      borderRadius: 12,
+                      color: 'white',
+                      fontSize: 14,
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                    }}
+                  />
+                  <p style={{ fontSize: 11, color: 'rgba(255, 255, 255, 0.6)', marginTop: 8, fontStyle: 'italic' }}>
+                    Describe your primary technical focus/skills (e.g. Backend Developer, UI/UX Specialist).
                   </p>
                 </div>
               )}
@@ -853,6 +934,68 @@ export default function SignupPage() {
               </button>
             </div>
           </>
+        )}
+
+        {/* STEP 3: PENDING ADMIN APPROVAL */}
+        {step === 3 && (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{
+              fontSize: 50,
+              marginBottom: 24,
+              display: 'inline-block',
+              animation: 'spin 2s linear infinite',
+              filter: 'drop-shadow(0 0 10px rgba(255, 255, 255, 0.4))'
+            }}>
+              ⏳
+            </div>
+            <h2 style={{
+              fontSize: 28,
+              fontWeight: 700,
+              color: 'white',
+              marginBottom: 16,
+              letterSpacing: '-0.5px',
+            }}>
+              Pending Approval
+            </h2>
+            <p style={{
+              color: 'rgba(255, 255, 255, 0.85)',
+              fontSize: 14,
+              marginBottom: 32,
+              lineHeight: '1.6',
+            }}>
+              Thank you for applying to be an expert at <strong>TechHelp IT Solutions</strong>!
+              <br /><br />
+              Your account details have been sent to the Admin. Once approved, you will be authorized to access the expert portal.
+            </p>
+
+            <Link
+              to="/login"
+              style={{
+                display: 'block',
+                width: '100%',
+                padding: '14px',
+                background: 'rgba(255, 255, 255, 0.95)',
+                color: '#667eea',
+                textDecoration: 'none',
+                borderRadius: 12,
+                fontSize: 15,
+                fontWeight: 700,
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
+                boxSizing: 'border-box',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.boxShadow = '0 8px 28px rgba(0, 0, 0, 0.25)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.2)';
+              }}
+            >
+              Back to Login
+            </Link>
+          </div>
         )}
       </div>
 

@@ -17,6 +17,7 @@ export const apiLimiter = rateLimit({
     success: false,
     message: 'Too many requests from this IP. Please try again after 15 minutes.',
   },
+  skip: () => process.env.NODE_ENV === 'test',
 });
 
 // ── Auth limiter ─────────────────────────────────────────────────────────
@@ -32,6 +33,7 @@ export const authLimiter = rateLimit({
     message: 'Too many authentication attempts. Please wait 15 minutes before trying again.',
   },
   skipSuccessfulRequests: false, // Count successful requests too
+  skip: () => process.env.NODE_ENV === 'test',
 });
 
 // ── Contact form limiter ─────────────────────────────────────────────────
@@ -46,6 +48,7 @@ export const contactLimiter = rateLimit({
     success: false,
     message: 'Too many contact form submissions. Please wait an hour before trying again.',
   },
+  skip: () => process.env.NODE_ENV === 'test',
 });
 
 // ── Password reset limiter ───────────────────────────────────────────────
@@ -60,4 +63,5 @@ export const passwordResetLimiter = rateLimit({
     success: false,
     message: 'Too many password reset attempts. Please wait an hour before trying again.',
   },
+  skip: () => process.env.NODE_ENV === 'test',
 });

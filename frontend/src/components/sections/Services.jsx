@@ -22,7 +22,7 @@ const defaultServices = [
     desc: 'Scalable web applications built with React, Node.js, and MongoDB. Secure architectures, fast load times, and cloud integration.',
     tags: ['React', 'Node.js', 'MongoDB', 'REST APIs'],
     inquiries: 148,
-    expert: { name: 'Arjun Sharma', role: 'Senior Full-Stack Engineer', avatar: 'AS' },
+    expert: { name: 'Prietish Patahk', role: 'Senior Full-Stack Engineer', avatar: 'PP', email: 'prietish12@gmail.com', phone: '91 75950 42847' },
     color: '#3b82f6',
   },
   {
@@ -31,7 +31,7 @@ const defaultServices = [
     desc: 'High-performance API design, microservices orchestration, and database tuning to drive your core operational needs.',
     tags: ['Microservices', 'GraphQL', 'Express', 'SQL/NoSQL'],
     inquiries: 94,
-    expert: { name: 'Priya Mehta', role: 'Backend Architecture Lead', avatar: 'PM' },
+    expert: { name: 'Soumyadip Dey', role: 'Backend Architecture Lead', avatar: 'SD', email: 'kutidey00677@gmail.com', phone: '9007597461' },
     color: '#8b5cf6',
   },
   {
@@ -40,7 +40,7 @@ const defaultServices = [
     desc: 'Reliable cloud migrations, CI/CD pipeline automation, and containerized configurations for uninterrupted operations.',
     tags: ['AWS', 'Docker', 'GitHub Actions', 'Serverless'],
     inquiries: 112,
-    expert: { name: 'Rahul Bose', role: 'Cloud Infrastructure Architect', avatar: 'RB' },
+    expert: { name: 'Aritra Hazra', role: 'Cloud Infrastructure Architect', avatar: 'AH', email: 'aritrahazra701@gmail.com', phone: '90075 06883' },
     color: '#10b981',
   },
   {
@@ -49,7 +49,7 @@ const defaultServices = [
     desc: 'Intuitive interface designs that map out seamless user flows. Interactive prototypes and stunning visuals designed for conversions.',
     tags: ['Figma', 'Prototyping', 'Design Systems'],
     inquiries: 73,
-    expert: { name: 'Sneha Das', role: 'Lead UX Designer', avatar: 'SD' },
+    expert: { name: 'Sneha Das', role: 'Lead UX Designer', avatar: 'SD', email: 'sneha.ux@example.com', phone: '9999988888' },
     color: '#f59e0b',
   },
 ];
@@ -63,6 +63,7 @@ function AskExpertModal({ service, onClose }) {
     email:   user?.email   || '',
     service: service.title,
     message: '',
+    preferences: '',
   });
   const [loading,   setLoading]   = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -86,7 +87,10 @@ function AskExpertModal({ service, onClose }) {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          expertId: service.expert._id || undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to send');
@@ -172,7 +176,11 @@ function AskExpertModal({ service, onClose }) {
                 {service.expert.name}
               </div>
               <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-                {service.expert.role} · will reply by email
+                {service.expert.role}
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 4, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {service.expert.email && <span>📧 {service.expert.email}</span>}
+                {service.expert.phone && <span>📞 {service.expert.phone}</span>}
               </div>
             </div>
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -257,6 +265,19 @@ function AskExpertModal({ service, onClose }) {
                     onBlur={e => e.target.style.borderColor = 'var(--border-color)'}
                   />
                 </div>
+              </div>
+
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ display: 'block', fontSize: 11, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Tech Preferences / Frameworks
+                </label>
+                <input
+                  value={form.preferences} onChange={e => setForm(p => ({ ...p, preferences: e.target.value }))}
+                  placeholder="e.g. React, Node.js, Python, Figma (optional)"
+                  style={inp}
+                  onFocus={e => e.target.style.borderColor = service.color}
+                  onBlur={e => e.target.style.borderColor = 'var(--border-color)'}
+                />
               </div>
 
               <div style={{ marginBottom: 18 }}>
@@ -476,12 +497,21 @@ export default function Services() {
   const mapService = (s, index) => {
     const matched = defaultServices.find(ds => ds.number === s.num);
     const colors = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ec4899', '#6366f1'];
-    const experts = [
-      { name: 'Arjun Sharma', role: 'Senior Full-Stack Engineer', avatar: 'AS' },
-      { name: 'Priya Mehta', role: 'Backend Architecture Lead', avatar: 'PM' },
-      { name: 'Rahul Bose', role: 'Cloud Infrastructure Architect', avatar: 'RB' },
-      { name: 'Sneha Das', role: 'Lead UX Designer', avatar: 'SD' },
-    ];
+    
+    // Set default fallback or use populated expert
+    let expertInfo = matched ? matched.expert : defaultServices[index % defaultServices.length].expert;
+    
+    if (s.expert) {
+      const initials = s.expert.name ? s.expert.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2) : 'EX';
+      expertInfo = {
+        _id: s.expert._id,
+        name: s.expert.name,
+        role: s.expert.role,
+        avatar: initials,
+        email: s.expert.email,
+        phone: s.expert.phone
+      };
+    }
 
     return {
       _id: s._id,
@@ -490,7 +520,7 @@ export default function Services() {
       desc: s.description,
       tags: s.tags || [],
       inquiries: matched ? matched.inquiries : (100 + (index * 15) % 80),
-      expert: matched ? matched.expert : experts[index % experts.length],
+      expert: expertInfo,
       color: matched ? matched.color : colors[index % colors.length],
     };
   };

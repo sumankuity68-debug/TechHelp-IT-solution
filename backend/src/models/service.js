@@ -32,6 +32,10 @@ const serviceSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    expert: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Expert',
+    },
   },
   { timestamps: true }
 );
