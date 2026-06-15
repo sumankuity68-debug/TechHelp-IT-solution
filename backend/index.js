@@ -57,7 +57,7 @@ app.use('/api/experts', expertRoutes);
 app.get('/api/health', (req, res) => {
     res.status(200).json({
         success: true,
-        message: 'TechHelp API is running',
+        message: 'TechHelp API is running (CORS Updated)',
         timestamp: new Date().toISOString(),
     });
 });
