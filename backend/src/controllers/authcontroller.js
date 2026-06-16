@@ -403,12 +403,13 @@ export const register = async (req, res) => {
     } catch (emailError) {
       console.error('Verification code dispatch error:', emailError);
 
-      // If email fails, delete the user and return error
-      await User.findByIdAndDelete(user._id);
-
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to send verification code. Please try again.',
+      // Keep the user in DB (unverified) so they can request resend later
+      // Do NOT delete the user — that would force them to re-register
+      return res.status(201).json({
+        success: true,
+        message: 'Account created! We could not send a verification email right now — please use "Resend Verification Email" on the login page to get your code.',
+        requiresVerification: true,
+        emailWarning: true,
       });
     }
   } catch (error) {

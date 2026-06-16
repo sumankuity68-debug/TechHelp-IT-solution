@@ -26,7 +26,7 @@ const sendEmail = async (options) => {
   try {
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT,
+      port: parseInt(process.env.SMTP_PORT) || 587,
       secure: false, 
       auth: {
         user: process.env.SMTP_USER,
@@ -46,7 +46,8 @@ const sendEmail = async (options) => {
 
     await transporter.sendMail(mailOptions);
   } catch (error) {
-    console.error('📧 [SMTP Mail Error] Failed to send email via SMTP:', error.message);
+    console.error('📧 [SMTP Mail Error] Failed to send email:', error.message);
+    console.error('📧 SMTP Config — HOST:', process.env.SMTP_HOST, '| PORT:', process.env.SMTP_PORT, '| USER:', process.env.SMTP_USER ? '(set)' : '(MISSING)');
 
     if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
       console.log('\n==================================================');
@@ -70,7 +71,7 @@ const sendEmail = async (options) => {
       return;
     }
 
-    // Rethrow error in production
+    // Rethrow error in production so callers can handle gracefully
     throw error;
   }
 };
