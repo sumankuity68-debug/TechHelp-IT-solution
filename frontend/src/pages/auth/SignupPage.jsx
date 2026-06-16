@@ -240,7 +240,7 @@ export default function SignupPage() {
         pointerEvents: 'none',
       }} />
 
-      <div style={{
+      <div className="signup-card" style={{
         width: '100%',
         maxWidth: 520,
         background: 'rgba(255, 255, 255, 0.12)',
@@ -252,6 +252,7 @@ export default function SignupPage() {
         boxShadow: '0 8px 48px rgba(0, 0, 0, 0.2), 0 1px 0 rgba(255,255,255,0.3) inset',
         position: 'relative',
         zIndex: 1,
+        boxSizing: 'border-box',
       }}>
         <Link to="/" style={{ textDecoration: 'none' }}>
           <h1 style={{
@@ -445,7 +446,7 @@ export default function SignupPage() {
               </div>
 
               {/* Password fields */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+              <div className="form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
                 <div>
                   <label style={{
                     display: 'block',
@@ -548,7 +549,7 @@ export default function SignupPage() {
                 }}>
                   Account Type
                 </label>
-                <div style={{ display: 'flex', gap: 12 }}>
+                <div className="role-flex" style={{ display: 'flex', gap: 12 }}>
                   <label style={{
                     flex: 1,
                     padding: '12px 16px',
@@ -1003,9 +1004,14 @@ export default function SignupPage() {
         )}
       </div>
 
-      {/* Input placeholder color override */}
+      {/* Input placeholder color override & mobile responsiveness */}
       <style>{`
         input::placeholder { color: rgba(255, 255, 255, 0.45) !important; }
+        @media (max-width: 576px) {
+          .signup-card { padding: 32px 24px !important; }
+          .form-grid { grid-template-columns: 1fr !important; }
+          .role-flex { flex-direction: column !important; }
+        }
       `}</style>
     </div>
   );

@@ -113,7 +113,7 @@ export default function Contact() {
             whileInView="visible"
             viewport={viewportOnce}
           >
-            <div className="section-label">Get In Touch</div>
+            <div className="section-label">Start a Project</div>
             <h2 style={{
               fontFamily: 'Fraunces, serif',
               fontSize: 'clamp(30px, 4vw, 48px)',

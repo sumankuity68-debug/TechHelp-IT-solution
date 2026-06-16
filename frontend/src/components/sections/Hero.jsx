@@ -162,8 +162,8 @@ export default function Hero() {
             variants={fadeInUp}
             style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap', marginBottom: 56 }}
           >
-            <Link to="/contact" className="btn-primary">Start a Project</Link>
-            <Link to="/services" className="btn-outline">Our Solutions</Link>
+            <Link to="/signup" className="btn-primary">Get Started</Link>
+            <Link to="/login" className="btn-outline">Log In</Link>
           </motion.div>
 
           {/* Stats row — each stat staggers */}

@@ -137,7 +137,7 @@ export default function LoginPage() {
       }} />
 
       {/* Glass Card */}
-      <div
+      <div className="login-card"
         style={{
           width: '100%',
           maxWidth: 460,
@@ -150,6 +150,7 @@ export default function LoginPage() {
           boxShadow: '0 8px 48px rgba(0, 0, 0, 0.2), 0 1px 0 rgba(255,255,255,0.3) inset',
           position: 'relative',
           zIndex: 1,
+          boxSizing: 'border-box',
         }}
       >
         {/* Logo */}
@@ -574,6 +575,9 @@ export default function LoginPage() {
       {/* Input placeholder color override */}
       <style>{`
         input::placeholder { color: rgba(255, 255, 255, 0.45) !important; }
+        @media (max-width: 576px) {
+          .login-card { padding: 32px 24px !important; }
+        }
       `}</style>
     </div>
   );
