@@ -35,6 +35,10 @@ const sendEmail = async (options) => {
       tls: {
         rejectUnauthorized: false,
       },
+      // ── Timeouts to prevent hanging forever ──────────────────
+      connectionTimeout: 10000,  // 10 seconds to connect
+      greetingTimeout: 10000,    // 10 seconds for SMTP greeting
+      socketTimeout: 15000,      // 15 seconds of inactivity limit
     });
 
     const mailOptions = {
@@ -44,10 +48,19 @@ const sendEmail = async (options) => {
       html: options.html,
     };
 
-    await transporter.sendMail(mailOptions);
+    // Hard deadline: if sendMail takes > 20 seconds, reject
+    const sendWithTimeout = Promise.race([
+      transporter.sendMail(mailOptions),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('SMTP timeout after 20 seconds')), 20000)
+      ),
+    ]);
+
+    await sendWithTimeout;
+    console.log(`📧 [SMTP] Email sent successfully to ${options.email}`);
   } catch (error) {
-    console.error('📧 [SMTP Mail Error] Failed to send email:', error.message);
-    console.error('📧 SMTP Config — HOST:', process.env.SMTP_HOST, '| PORT:', process.env.SMTP_PORT, '| USER:', process.env.SMTP_USER ? '(set)' : '(MISSING)');
+    console.error('📧 [SMTP Error]', error.message);
+    console.error('📧 SMTP Config → HOST:', process.env.SMTP_HOST, '| PORT:', process.env.SMTP_PORT, '| USER:', process.env.SMTP_USER ? '(set)' : '(MISSING)');
 
     if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
       console.log('\n==================================================');
