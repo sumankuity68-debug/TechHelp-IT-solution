@@ -41,12 +41,12 @@ export default function AdminPortalHome() {
   }, []);
 
   const quickLinks = [
-    { icon: '📊', label: 'Admin Dashboard',   sub: 'Full control panel',          path: '/admin',   color: '#3b82f6' },
-    { icon: '📧', label: 'Contact Inquiries',  sub: `${stats.pending} pending`,    path: '/admin',   color: '#f59e0b' },
-    { icon: '👥', label: 'User Management',    sub: `${stats.users} total users`,  path: '/admin',   color: '#10b981' },
-    { icon: '⚙️', label: 'Manage Services',    sub: 'Edit service catalogue',      path: '/admin',   color: '#8b5cf6' },
-    { icon: '💳', label: 'Paid Users',          sub: 'View payment records',        path: '/admin',   color: '#06b6d4' },
-    { icon: '👨‍💼', label: 'Experts Panel',     sub: 'Manage expert roster',        path: '/admin',   color: '#ec4899' },
+    { icon: '📊', label: 'Admin Dashboard',   sub: 'Full control panel',          path: '/admin?tab=overview',   color: '#3b82f6' },
+    { icon: '📧', label: 'Contact Inquiries',  sub: `${stats.pending} pending`,    path: '/admin?tab=inquiries',  color: '#f59e0b' },
+    { icon: '👥', label: 'User Management',    sub: `${stats.users} total users`,  path: '/admin?tab=users',      color: '#10b981' },
+    { icon: '⚙️', label: 'Manage Services',    sub: 'Edit service catalogue',      path: '/admin?tab=services',   color: '#8b5cf6' },
+    { icon: '💳', label: 'Paid Users',          sub: 'View payment records',        path: '/admin?tab=payments',   color: '#06b6d4' },
+    { icon: '👨‍💼', label: 'Experts Panel',     sub: 'Manage expert roster',        path: '/admin?tab=experts',    color: '#ec4899' },
   ];
 
   const statCards = [

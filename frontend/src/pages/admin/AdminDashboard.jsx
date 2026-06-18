@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useToast } from '../../context/ToastContext';
 import usePagination from '../../hooks/usePagination';
@@ -9,10 +9,24 @@ import { contactAPI, usersAPI, servicesAPI, expertsAPI, ordersAPI, visitorsAPI }
 export default function AdminDashboard() {
   const { user, logout, token } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { theme, toggleTheme } = useTheme();
   const { showSuccess, showError } = useToast();
   
-  const [activeTab, setActiveTab] = useState('overview');
+  const initialTab = searchParams.get('tab') || 'overview';
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    setSearchParams({ tab: tabId });
+  };
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab && tab !== activeTab) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalContacts: 0,
@@ -613,7 +627,7 @@ export default function AdminDashboard() {
           <button
             key={tab.id}
             className="dash-tab-btn"
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => handleTabChange(tab.id)}
             style={{
               flex: 1,
               background: activeTab === tab.id 
@@ -678,7 +692,7 @@ export default function AdminDashboard() {
                     { label: "Today's Visitors",   value: visitorSummary.today,  icon: '👁️', color: '#ec4899' },
                   ].map((s, idx) => (
                     <div key={idx}
-                      onClick={() => s.label === 'Paid Users' ? setActiveTab('payments') : null}
+                      onClick={() => s.label === 'Paid Users' ? handleTabChange('payments') : null}
                       style={{
                         background: 'var(--dash-btn-bg)',
                         border: 'var(--dash-btn-border)',

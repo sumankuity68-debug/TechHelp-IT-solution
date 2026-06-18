@@ -25,6 +25,14 @@ export default function Navbar() {
   const location                      = useLocation();
   const { theme, toggleTheme }        = useTheme();
 
+  const filteredNavLinks = navLinks.filter(link => {
+    if (link.label === 'Contact') {
+      // Exclude Contact page link for Admins and Experts
+      return !user || (user.role !== 'admin' && user.role !== 'expert');
+    }
+    return true;
+  });
+
   // Scroll shadow
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40);
@@ -93,7 +101,7 @@ export default function Navbar() {
 
           {/* Desktop links */}
           <ul style={{ display: 'flex', gap: 36, listStyle: 'none' }} className="nav-desktop">
-            {navLinks.map(link => (
+            {filteredNavLinks.map(link => (
               <li key={link.label}>
                 <Link
                   to={link.to}
@@ -298,7 +306,7 @@ export default function Navbar() {
 
               {/* Nav links */}
               <nav style={{ padding: '0 12px' }}>
-                {navLinks.map((link, i) => (
+                {filteredNavLinks.map((link, i) => (
                   <motion.div
                     key={link.label}
                     initial={{ opacity: 0, x: 20 }}
