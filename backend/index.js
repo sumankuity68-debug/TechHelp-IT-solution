@@ -12,6 +12,7 @@ import userRoutes from './src/routes/user.routes.js';
 import expertRoutes from './src/routes/expert.routes.js';
 import paymentRoutes from './src/routes/payment.routes.js';
 import { apiLimiter } from './src/middleware/rateLimiter.js';
+import sendEmail from './src/utils/sendEmail.js';
 
 connectDB();
 const app = express();
@@ -61,6 +62,19 @@ app.use('/api/testimonials', testimonialRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/experts', expertRoutes);
 app.use('/api/payment', paymentRoutes);
+
+app.get('/api/test-live-email', async (req, res) => {
+  try {
+    await sendEmail({
+      email: 'sumankuity68@gmail.com',
+      subject: '✨ Live Render SMTP Diagnostic Test',
+      html: '<h1>Live Test</h1><p>If you see this, SMTP is working on Render!</p>'
+    });
+    res.status(200).json({ success: true, message: 'Email sent successfully from Render!' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message, stack: err.stack });
+  }
+});
 
 app.get('/api/health', (req, res) => {
     res.status(200).json({
