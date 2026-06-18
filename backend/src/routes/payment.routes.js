@@ -7,6 +7,7 @@ import {
   getSessionDetails,
   stripeWebhook,
   getOrders,
+  getMyOrders,
 } from '../controllers/paymentController.js';
 import { protect, admin } from '../middleware/auth.js';
 
@@ -21,6 +22,9 @@ router.post('/create-checkout-session', protect, createCheckoutSession);
 
 // Public: fetch session details after redirect (success page)
 router.get('/session/:sessionId', getSessionDetails);
+
+// User: fetch current user's paid orders
+router.get('/my-orders', protect, getMyOrders);
 
 // Admin: list all paid orders
 router.get('/orders', protect, admin, getOrders);

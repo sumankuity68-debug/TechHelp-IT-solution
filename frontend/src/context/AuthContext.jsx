@@ -16,6 +16,16 @@ export const AuthProvider = ({ children }) => {
           const res = await fetch('/api/auth/me', {
             headers: { Authorization: `Bearer ${savedToken}` },
           });
+          
+          if (res.status === 401 || res.status === 403) {
+            // Explicitly unauthorized / invalid token
+            localStorage.removeItem('token');
+            setToken(null);
+            setUser(null);
+            setLoading(false);
+            return;
+          }
+
           const data = await res.json();
           if (data.success) {
             setUser(data.user);
@@ -26,10 +36,8 @@ export const AuthProvider = ({ children }) => {
             setUser(null);
           }
         } catch (error) {
-          console.error('Auth check failed:', error);
-          localStorage.removeItem('token');
-          setToken(null);
-          setUser(null);
+          console.error('Auth check failed (temporary server/network issue):', error);
+          // Do NOT clear token on network failure/timeout so user doesn't get logged out
         }
       }
       setLoading(false);

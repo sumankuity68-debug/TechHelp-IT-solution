@@ -126,9 +126,7 @@ export const getSessionDetails = async (req, res) => {
     console.error('[Stripe] getSessionDetails error:', err.message);
     res.status(500).json({ success: false, message: err.message });
   }
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
+};// ─────────────────────────────────────────────────────────────────────────────
 // GET /api/payment/orders
 // Admin only — returns all paid orders, newest first
 // ─────────────────────────────────────────────────────────────────────────────
@@ -163,7 +161,25 @@ export const getOrders = async (req, res) => {
   }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/payment/my-orders
+// Logged in user — returns their own paid orders/plans
+// ─────────────────────────────────────────────────────────────────────────────
+export const getMyOrders = async (req, res) => {
+  try {
+    const orders = await Order.find({ user: req.user.id, status: 'paid' })
+      .sort({ createdAt: -1 })
+      .lean();
 
+    res.status(200).json({
+      success: true,
+      data: orders,
+    });
+  } catch (err) {
+    console.error('[Payment] getMyOrders error:', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/payment/webhook
 // Called by Stripe when payment_intent.succeeded / checkout.session.completed

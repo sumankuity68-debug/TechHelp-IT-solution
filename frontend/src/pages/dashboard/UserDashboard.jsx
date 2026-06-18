@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { useToast } from '../../context/ToastContext';
-import { contactAPI } from '../../utils/api';
+import { contactAPI, ordersAPI } from '../../utils/api';
 
 export default function UserDashboard() {
   const { user, logout, token } = useAuth();
@@ -17,9 +17,25 @@ export default function UserDashboard() {
   const [fetchError, setFetchError]   = useState('');
   const [expandedCardId, setExpandedCardId] = useState(null);
 
-  const showUpgradeToast = () => {
-    showSuccess('Upgrade initiated! TechHelp Pro features are coming soon to your dashboard.');
-  };
+  const [activeOrder, setActiveOrder] = useState(null);
+  const [loadingOrder, setLoadingOrder] = useState(true);
+
+  // ── Fetch the user's active paid plan ─────────────────────────────────
+  const fetchActivePlan = useCallback(async () => {
+    if (!token) return;
+    setLoadingOrder(true);
+    try {
+      const data = await ordersAPI.getMy();
+      if (data.success && data.data.length > 0) {
+        // Since it's sorted by newest, first paid order is current active
+        setActiveOrder(data.data[0]);
+      }
+    } catch (err) {
+      console.error('Failed to load active plan:', err);
+    } finally {
+      setLoadingOrder(false);
+    }
+  }, [token]);
 
   // ── Fetch the user's real contact submissions ──────────────────────────
   const fetchMyContacts = useCallback(async () => {
@@ -36,7 +52,10 @@ export default function UserDashboard() {
     }
   }, [token]);
 
-  useEffect(() => { fetchMyContacts(); }, [fetchMyContacts]);
+  useEffect(() => {
+    fetchActivePlan();
+    fetchMyContacts();
+  }, [fetchActivePlan, fetchMyContacts]);
 
   const toggleExpandCard = (id) => {
     setExpandedCardId(prev => (prev === id ? null : id));
@@ -237,28 +256,46 @@ export default function UserDashboard() {
           </button>
 
           {/* Upgrade to Pro Action */}
-          <button
-            onClick={showUpgradeToast}
-            style={{
-              background: 'var(--dash-btn-pro-bg)',
-              border: 'var(--dash-btn-border)',
-              color: 'var(--dash-btn-pro-text)',
+          {activeOrder ? (
+            <div style={{
+              background: 'rgba(16, 185, 129, 0.1)',
+              border: '1px solid rgba(16, 185, 129, 0.25)',
+              color: '#10b981',
               padding: '12px 24px',
               borderRadius: 12,
               fontSize: 14,
               fontWeight: 600,
-              cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              transition: 'all 0.2s',
-            }}
-            onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.15)'; }}
-            onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
-          >
-            <span style={{ fontSize: 18 }}>⭐</span>
-            Upgrade to Pro
-          </button>
+            }}>
+              <span style={{ fontSize: 18 }}>👑</span>
+              {activeOrder.planName} Active
+            </div>
+          ) : (
+            <button
+              onClick={() => navigate('/services')}
+              style={{
+                background: 'var(--dash-btn-pro-bg)',
+                border: 'var(--dash-btn-border)',
+                color: 'var(--dash-btn-pro-text)',
+                padding: '12px 24px',
+                borderRadius: 12,
+                fontSize: 14,
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s',
+              }}
+              onMouseOver={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(0, 0, 0, 0.15)'; }}
+              onMouseOut={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+            >
+              <span style={{ fontSize: 18 }}>⭐</span>
+              Upgrade to Pro
+            </button>
+          )}
         </div>
       </div>
 
@@ -416,6 +453,7 @@ export default function UserDashboard() {
           {/* Detail rows */}
           {[
             { label: 'Account Type', value: user?.role === 'admin' ? '⭐ Admin' : 'User', badge: true },
+            { label: 'Active Plan', value: activeOrder ? `👑 ${activeOrder.planName} (${activeOrder.billing})` : 'Free Tier', badge: !!activeOrder },
             { label: 'Member Since', value: new Date(user?.createdAt).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) },
             { label: 'Email Status', value: user?.isVerified ? '✅ Verified' : '⚠️ Unverified' },
             { label: 'Status', value: '🟢 Active' },
@@ -444,6 +482,60 @@ export default function UserDashboard() {
             )}
           </div>
         </div>
+
+        {/* ── Plan Benefits & Features ── */}
+        {activeOrder && (
+          <div style={{ ...card, padding: '1.5rem', marginTop: '1.5rem' }}>
+            <h2 style={{ fontSize: 18, fontWeight: 600, color: 'var(--dash-text-primary)', margin: '0 0 1.25rem 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+              👑 Plan Benefits
+            </h2>
+            <p style={{ fontSize: 13, color: 'var(--dash-text-secondary)', marginBottom: 16 }}>
+              You are subscribed to the <strong>{activeOrder.planName} Plan</strong>. Premium features unlocked on your account:
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {activeOrder.planId === 'starter' && [
+                '✓ 1 Web Application development slot',
+                '✓ Highly responsive & modern UI design',
+                '✓ REST API Integration & logic flow',
+                '✓ Dedicated MongoDB Database setup',
+                '✓ Secure JWT Authentication',
+                '✓ Email Support (48h response guarantee)',
+              ].map(f => (
+                <div key={f} style={{ fontSize: 13, color: 'var(--dash-text-secondary)', display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span style={{ color: '#10b981', fontWeight: 'bold' }}>✓</span> {f.substring(2)}
+                </div>
+              ))}
+              {activeOrder.planId === 'professional' && [
+                '✓ Up to 5 Web Application slot developments',
+                '✓ Google OAuth & Two-Factor Authentication',
+                '✓ Custom Internal Admin Dashboard access',
+                '✓ Automated CI/CD Deployment pipelines',
+                '✓ Priority Support response (within 12h)',
+                '✓ Advanced DB Indexing and profiling',
+              ].map(f => (
+                <div key={f} style={{ fontSize: 13, color: 'var(--dash-text-secondary)', display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span style={{ color: '#10b981', fontWeight: 'bold' }}>✓</span> {f.substring(2)}
+                </div>
+              ))}
+              {activeOrder.planId === 'enterprise' && [
+                '✓ Unlimited Web Apps & API integrations',
+                '✓ Full Custom Authentication & Single-Sign On (SSO)',
+                '✓ Dedicated 1-on-1 Expert Advisor & Developer',
+                '✓ Cloud Hosting Deployments (AWS/GCP/Azure)',
+                '✓ 24/7 Priority Support (Phone, SMS, Slack)',
+                '✓ Custom Service level Agreements (SLA)',
+              ].map(f => (
+                <div key={f} style={{ fontSize: 13, color: 'var(--dash-text-secondary)', display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span style={{ color: '#10b981', fontWeight: 'bold' }}>✓</span> {f.substring(2)}
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: 'var(--dash-text-muted)' }}>Invoice ID: {activeOrder.invoiceNumber}</span>
+              <span style={{ fontSize: 12, color: '#10b981', fontWeight: 600 }}>Status: Paid</span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -244,12 +244,17 @@ export const expertsAPI = {
 };
 
 // ═══════════════════════════════════════════════════════════════════════
-// ORDERS (Admin only)
+// ORDERS
 // ═══════════════════════════════════════════════════════════════════════
 export const ordersAPI = {
   // Paginated: { page, limit }
   getAll: (params = {}) =>
     fetch(`${BASE}/payment/orders${buildQuery(params)}`, {
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+    }).then(handleResponse),
+
+  getMy: () =>
+    fetch(`${BASE}/payment/my-orders`, {
       headers: { 'Content-Type': 'application/json', ...authHeader() },
     }).then(handleResponse),
 };
