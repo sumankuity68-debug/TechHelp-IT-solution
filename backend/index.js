@@ -66,6 +66,26 @@ app.use('/api/payment', paymentRoutes);
 
 
 
+app.get('/api/test-stripe', async (req, res) => {
+  try {
+    const key = process.env.STRIPE_SECRET_KEY;
+    if (!key) {
+      return res.status(400).json({ success: false, message: 'STRIPE_SECRET_KEY is not set!' });
+    }
+    const Stripe = (await import('stripe')).default;
+    const stripe = new Stripe(key);
+    const customers = await stripe.customers.list({ limit: 1 });
+    res.status(200).json({
+      success: true,
+      message: 'Stripe credentials are valid!',
+      keyPrefix: key.substring(0, 7) + '...',
+      customersCount: customers.data.length
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message, stack: err.stack });
+  }
+});
+
 app.get('/api/health', (req, res) => {
     res.status(200).json({
         success: true,
