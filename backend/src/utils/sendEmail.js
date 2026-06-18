@@ -1,9 +1,8 @@
-
-
 import nodemailer from 'nodemailer';
 
 const sendEmail = async (options) => {
-  if (process.env.NODE_ENV === 'test' || !process.env.SMTP_HOST) {
+  // Test fallback if test mode or no mail keys are set
+  if (process.env.NODE_ENV === 'test' || (!process.env.SMTP_HOST && !process.env.BREVO_API_KEY)) {
     console.log('\n==================================================');
     console.log('🛠️  [TEST FALLBACK / NO SMTP] EMAIL DETAILS');
     console.log(`To:      ${options.email}`);
@@ -23,6 +22,42 @@ const sendEmail = async (options) => {
     return;
   }
 
+  // Method 1: If BREVO_API_KEY is configured, use the HTTPS REST API (Bypasses Render's port blocks!)
+  if (process.env.BREVO_API_KEY) {
+    try {
+      const fromEmail = process.env.EMAIL_FROM || 'sumankuity68@gmail.com';
+      const fromName = process.env.EMAIL_FROM_NAME || 'TechHelp IT Solutions';
+
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'api-key': process.env.BREVO_API_KEY,
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+          sender: { name: fromName, email: fromEmail },
+          to: [{ email: options.email }],
+          subject: options.subject,
+          htmlContent: options.html
+        })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || 'Brevo API error');
+      }
+
+      console.log(`📧 [Brevo API] Email sent successfully to ${options.email} (MessageID: ${data.messageId})`);
+      return;
+    } catch (apiError) {
+      console.error('📧 [Brevo API Error]', apiError.message);
+      // Fallback to SMTP if API fails
+      console.log('🔄 Attempting fallback to SMTP transporter...');
+    }
+  }
+
+  // Method 2: Traditional SMTP via nodemailer
   try {
     const port = parseInt(process.env.SMTP_PORT) || 587;
     const transporter = nodemailer.createTransport({
@@ -69,7 +104,6 @@ const sendEmail = async (options) => {
       console.log(`To:      ${options.email}`);
       console.log(`Subject: ${options.subject}`);
       
-      // Extract OTP or verification code if present in HTML
       const otpMatch = options.html.match(/class="otp-code"[^>]*>([^<]+)</);
       if (otpMatch) {
         console.log(`🔑 CODE:  ${otpMatch[1].trim()}`);
@@ -81,7 +115,6 @@ const sendEmail = async (options) => {
       }
       console.log('==================================================\n');
       
-      // Resolve successfully so the request proceeds without breaking local testing
       return;
     }
 
