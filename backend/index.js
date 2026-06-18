@@ -97,6 +97,18 @@ app.get('/api/test-user-exist', async (req, res) => {
   }
 });
 
+app.get('/api/test-env', (req, res) => {
+  res.json({
+    SMTP_HOST: process.env.SMTP_HOST,
+    SMTP_PORT: process.env.SMTP_PORT,
+    SMTP_USER: process.env.SMTP_USER,
+    SMTP_PASS_EXISTS: !!process.env.SMTP_PASS,
+    EMAIL_FROM: process.env.EMAIL_FROM,
+    EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME,
+    NODE_ENV: process.env.NODE_ENV
+  });
+});
+
 
 app.get('/api/health', (req, res) => {
     res.status(200).json({
