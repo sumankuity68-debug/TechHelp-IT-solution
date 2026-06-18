@@ -76,6 +76,17 @@ app.get('/api/test-live-email', async (req, res) => {
   }
 });
 
+app.get('/api/test-list-users', async (req, res) => {
+  try {
+    const User = (await import('./src/models/user.js')).default;
+    const users = await User.find({}, 'name email role isVerified createdAt');
+    res.status(200).json({ success: true, users });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+
 app.get('/api/health', (req, res) => {
     res.status(200).json({
         success: true,
