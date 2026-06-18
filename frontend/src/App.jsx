@@ -34,6 +34,8 @@ const ExpertDashboard    = React.lazy(() => import('./pages/dashboard/ExpertDash
 const ProfilePage        = React.lazy(() => import('./pages/ProfilePage'));
 const AdminDashboard     = React.lazy(() => import('./pages/admin/AdminDashboard'));
 const NotFoundPage       = React.lazy(() => import('./pages/NotFoundPage'));
+const PaymentSuccessPage = React.lazy(() => import('./pages/payment/PaymentSuccessPage'));
+const PaymentCancelPage  = React.lazy(() => import('./pages/payment/PaymentCancelPage'));
 
 function App() {
   return (
@@ -104,6 +106,10 @@ function App() {
                       </ProtectedRoute>
                     }
                   />
+
+                  {/* Payment flows */}
+                  <Route path="/payment/success" element={<Suspense fallback={<ContentPageSkeleton />}><PaymentSuccessPage /></Suspense>} />
+                  <Route path="/payment/cancel" element={<Suspense fallback={<ContentPageSkeleton />}><PaymentCancelPage /></Suspense>} />
 
                   {/* 404 — catch all unmatched routes */}
                   <Route path="/404" element={<Suspense fallback={<ContentPageSkeleton />}><NotFoundPage /></Suspense>} />

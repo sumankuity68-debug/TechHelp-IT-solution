@@ -3,6 +3,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { motion } from 'framer-motion';
 import {
   fadeIn,
@@ -101,7 +102,7 @@ function CrossIcon() {
 }
 
 // ── Single Pricing Card ───────────────────────────────────────────────────────
-function PricingCard({ plan, yearly, onSelect }) {
+function PricingCard({ plan, yearly, onSelect, isLoading = false }) {
   const [hovered, setHovered] = useState(false);
   const price = yearly ? plan.yearlyPrice : plan.monthlyPrice;
 
@@ -202,6 +203,7 @@ function PricingCard({ plan, yearly, onSelect }) {
       {/* CTA Button */}
       <button
         onClick={() => onSelect(plan)}
+        disabled={isLoading}
         style={{
           width: '100%',
           padding: '13px',
@@ -211,25 +213,28 @@ function PricingCard({ plan, yearly, onSelect }) {
           borderRadius: 10,
           fontSize: 14,
           fontWeight: 600,
-          cursor: 'pointer',
+          cursor: isLoading ? 'not-allowed' : 'pointer',
           marginBottom: 28,
           transition: 'all 0.2s ease',
           letterSpacing: '0.02em',
+          opacity: isLoading ? 0.7 : 1,
         }}
         onMouseEnter={e => {
+          if (isLoading) return;
           e.currentTarget.style.background = plan.color;
           e.currentTarget.style.color = '#fff';
           e.currentTarget.style.transform = 'scale(1.02)';
           e.currentTarget.style.boxShadow = `0 6px 20px ${plan.color}40`;
         }}
         onMouseLeave={e => {
+          if (isLoading) return;
           e.currentTarget.style.background = plan.popular ? plan.color : 'transparent';
           e.currentTarget.style.color = plan.popular ? '#fff' : plan.color;
           e.currentTarget.style.transform = 'scale(1)';
           e.currentTarget.style.boxShadow = 'none';
         }}
       >
-        {plan.cta} →
+        {isLoading ? 'Redirecting...' : `${plan.cta} →`}
       </button>
 
       {/* Divider */}
@@ -260,13 +265,43 @@ function PricingCard({ plan, yearly, onSelect }) {
 // ── Main Section ──────────────────────────────────────────────────────────────
 export default function PricingSection() {
   const [yearly, setYearly] = useState(false);
+  const [loadingPlanId, setLoadingPlanId] = useState(null); // which button is loading
   const navigate = useNavigate();
+  const { user, token } = useAuth();
 
-  const handleSelect = (plan) => {
+  const handleSelect = async (plan) => {
+    // Enterprise → contact page
     if (plan.id === 'enterprise') {
       navigate('/contact');
-    } else {
-      navigate('/signup');
+      return;
+    }
+
+    // Must be logged in to pay
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    setLoadingPlanId(plan.id);
+    try {
+      const res = await fetch('/api/payment/create-checkout-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          planId:  plan.id,
+          billing: yearly ? 'yearly' : 'monthly',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Could not create session');
+      // Redirect to Stripe Checkout
+      window.location.href = data.url;
+    } catch (err) {
+      alert(`Payment error: ${err.message}`);
+      setLoadingPlanId(null);
     }
   };
 
@@ -411,6 +446,7 @@ export default function PricingSection() {
               plan={plan}
               yearly={yearly}
               onSelect={handleSelect}
+              isLoading={loadingPlanId === plan.id}
             />
           ))}
         </motion.div>

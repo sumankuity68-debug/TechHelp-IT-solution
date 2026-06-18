@@ -1,6 +1,7 @@
 
+import './src/config/env.js';
+
 import express from 'express';
-import dotenv from 'dotenv';
 import cors from 'cors';
 import connectDB from './src/config/db.js';
 import authRoutes from './src/routes/auth.routes.js';
@@ -9,9 +10,8 @@ import servicesRoutes from './src/routes/services.routes.js';
 import testimonialRoutes from './src/routes/testimonial.routes.js';
 import userRoutes from './src/routes/user.routes.js';
 import expertRoutes from './src/routes/expert.routes.js';
+import paymentRoutes from './src/routes/payment.routes.js';
 import { apiLimiter } from './src/middleware/rateLimiter.js';
-
-dotenv.config();
 
 connectDB();
 const app = express();
@@ -20,6 +20,7 @@ const app = express();
 const allowedOrigins = [
   process.env.FRONTEND_URL || 'http://localhost:5173',
   'http://localhost:5173',
+  'http://localhost:5174',
   'http://localhost:3000',
   'https://techhelp-it-solution.vercel.app',
 ];
@@ -41,6 +42,12 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
+// ── Stripe webhook needs raw body — MUST be before express.json() ────────────
+app.use(
+  '/api/payment/webhook',
+  express.raw({ type: 'application/json' })
+);
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -53,6 +60,7 @@ app.use('/api/services', servicesRoutes);
 app.use('/api/testimonials', testimonialRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/experts', expertRoutes);
+app.use('/api/payment', paymentRoutes);
 
 app.get('/api/health', (req, res) => {
     res.status(200).json({
