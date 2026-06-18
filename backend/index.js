@@ -80,7 +80,18 @@ app.get('/api/test-list-users', async (req, res) => {
   try {
     const User = (await import('./src/models/user.js')).default;
     const users = await User.find({}, 'name email role isVerified createdAt');
-    res.status(200).json({ success: true, users });
+    const formatted = users.map(u => `${u.name} | ${u.email} | ${u.role} | Verified: ${u.isVerified} | Created: ${u.createdAt}`).join('\n');
+    res.type('text/plain').send(formatted);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
+});
+
+app.get('/api/test-user-exist', async (req, res) => {
+  try {
+    const User = (await import('./src/models/user.js')).default;
+    const user = await User.findOne({ email: req.query.email });
+    res.status(200).json({ success: true, exists: !!user, user });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
