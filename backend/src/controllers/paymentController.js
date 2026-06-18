@@ -6,7 +6,7 @@ import Order from '../models/Order.js';
 import User from '../models/user.js';
 import sendEmail from '../utils/sendEmail.js';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder_for_render_startup_only');
 
 // ── Plan catalogue (mirrors frontend PricingSection.jsx) ─────────────────────
 const PLANS = {
