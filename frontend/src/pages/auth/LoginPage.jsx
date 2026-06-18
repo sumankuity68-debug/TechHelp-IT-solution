@@ -638,6 +638,8 @@ export default function LoginPage() {
             ← Back to Home
           </Link>
         </p>
+          </>
+        )}
       </div>
 
       {/* Input placeholder color override */}
