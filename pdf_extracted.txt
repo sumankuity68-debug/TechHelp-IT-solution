@@ -1,0 +1,183 @@
+﻿Full Stack Business Website &
+Dashboard Development
+1-Month Web Development Internship Project
+Duration: 1 Month
+Submission Deadline: 20-June-2026
+Project Objective
+The objective of this internship project is to provide interns with practical
+industry-level experience in modern web development by building a complete
+responsive web application from scratch. Interns will work on frontend design,
+backend integration, database handling, authentication, deployment, and project
+structuring while following professional development practices.
+This project is designed to improve proficiency in:
+ΓùÅ Frontend and Backend Development
+ΓùÅ API Integration and Database Management
+ΓùÅ UI/UX Understanding and Responsive Design
+ΓùÅ Real-World Problem Solving and Deployment Knowledge
+Technology Stack
+The following technologies are authorized for the development of this platform:
+Category Approved Technologies
+HTML5, CSS3, Tailwind CSS, JavaScript,
+Frontend
+React.js / Next.js
+Backend Node.js, Express.js
+Category Approved Technologies
+Database MongoDB / Firebase
+Git & GitHub, Postman, Vercel / Netlify
+Tools
+/ Render
+Mandatory Features & Requirements
+1. Core Systems
+ΓùÅ Authentication System: Implementation of user signup, login, and logout
+functionalities with password encryption and JWT management.
+ΓùÅ API Development: Development of REST APIs for authentication, CRUD
+operations, contact forms, and general data fetching.
+ΓùÅ Database Integration: Secure storage for user data, contact form entries,
+dashboard content, and dynamic site information.
+2. User Interface
+ΓùÅ Responsive Landing Page: Must include a Hero Section, About Section,
+Services, Testimonials, Footer, and a functional Contact Form with modern
+animations.
+ΓùÅ Dashboard Panel: An administrative area where the admin can manage
+records (Add/Edit/Delete), view inquiries, and manage users or content.
+ΓùÅ Design Standards: The UI must be clean, modern, professional,
+mobile-friendly, and fast-loading.
+Important Notice: This project must be developed individually. Cloned or
+copy-pasted projects are strictly prohibited and will result in disqualification.
+3. Suggested Project Flow & Website Pages
+Complete Website Flow
+The application should follow a proper user journey from landing on the website to
+interacting with the dashboard and backend services.
+1. Landing/Home Page
+Purpose: The Home Page acts as the first impression of the platform and should
+clearly explain the business/service.
+Sections & Functionalities:
+ΓùÅ Hero Section:
+Γùï Attractive heading
+Γùï Call-to-action button
+Γùï Background image/animation
+Γùï ΓÇ£Get StartedΓÇ¥ or ΓÇ£Contact UsΓÇ¥ button
+ΓùÅ About Section:
+Γùï Company introduction
+Γùï Mission & vision
+Γùï Brief business overview
+ΓùÅ Services Section: Display services/products offered by the business.
+Γùï Example: Web Development, App Development, Digital Marketing,
+UI/UX Design
+ΓùÅ Testimonials Section:
+Γùï Client reviews
+Γùï Ratings
+Γùï Success stories
+ΓùÅ Contact Section:
+Γùï Contact form
+Γùï Email & phone details
+Γùï Location map integration
+ΓùÅ Footer:
+Γùï Social media links
+Γùï Quick navigation links
+Γùï Copyright
+2. Authentication Pages
+A. Signup Page
+ΓùÅ Functionalities: User Registration, Form Validation, Password Encryption,
+Store User Data in Database
+ΓùÅ Fields: Name, Email, Password, Confirm Password
+B. Login Page
+ΓùÅ Functionalities: User Login, JWT/Auth Verification, Error Handling, Redirect
+after login
+3. User Dashboard
+Purpose: After login, users should access their personalized dashboard.
+Functionalities:
+ΓùÅ Dashboard Overview: Welcome message, User profile info, Statistics/cards
+ΓùÅ User Actions: Depending on project type (View data, Submit forms, Track
+status, Update profile)
+ΓùÅ Dynamic Content: Fetch data from backend APIs.
+4. Admin Dashboard
+Purpose: Admin panel to manage the entire platform.
+Main Functionalities:
+ΓùÅ Manage Users: View users, Delete users, Edit user information
+ΓùÅ Manage Content: Add/Edit/Delete services, Update website content
+ΓùÅ Inquiry Management: View contact form submissions, Respond to inquiries
+ΓùÅ Analytics Section (Optional): Total users, Website visits, Inquiry statistics
+5. Services Page
+Purpose: Dedicated page explaining all services in detail.
+Functionalities: Service cards, Detailed descriptions, Pricing section (optional),
+Inquiry buttons
+6. Contact Page
+Functionalities: Contact form, Backend form submission, Email integration
+(optional), Google Maps integration
+Form Data: Store all inquiries in database.
+7. Profile Page
+Functionalities: Update profile, Change password, Upload profile image, View
+account information
+8. Responsive Navigation System
+Navbar Features: Responsive mobile menu, Authentication-based navigation,
+Smooth scrolling, Active page highlighting
+9. Backend Functionalities
+Required APIs:
+ΓùÅ Authentication APIs: Register User, Login User, Logout User
+ΓùÅ CRUD APIs: Create Data, Read Data, Update Data, Delete Data
+ΓùÅ Contact APIs: Submit inquiry, Fetch inquiries
+10. Database Collections/Tables
+Suggested Database Structure:
+ΓùÅ Users Collection: Stores Name, Email, Password, Role
+ΓùÅ Contact/Inquiries Collection: Stores Name, Email, Message, Timestamp
+ΓùÅ Services Collection: Stores Service Name, Description, Price, Image
+11. Deployment Requirements
+The final project must include:
+ΓùÅ Fully working frontend
+ΓùÅ Connected backend
+ΓùÅ Database integration
+ΓùÅ Live deployment
+ΓùÅ Proper responsiveness
+Optional Advanced Features
+Interns can add extra features like:
+ΓùÅ Dark/Light Mode
+ΓùÅ Real-time Chat
+ΓùÅ Notifications
+ΓùÅ Search Functionality
+ΓùÅ Image Uploads
+ΓùÅ Payment Gateway
+ΓùÅ Blog Section
+ΓùÅ Admin Analytics
+ΓùÅ Role-Based Access
+ΓùÅ Email Verification
+ΓùÅ OTP Authentication
+Suggested Development Flow
+Timeframe Focus Areas
+Week 1 UI Design, Landing Page, Authentication
+Setup
+Week 2 Backend APIs, Database Integration,
+Dashboard Structure
+Week 3 CRUD Operations, Admin Panel, Dynamic
+Data Handling
+Week 4 Final Testing, Bug Fixes, Deployment,
+Documentation, Demo Video Preparation
+Final Goal
+The final application should feel like a real-world professional product with:
+ΓùÅ Clean UI
+ΓùÅ Proper backend architecture
+ΓùÅ Smooth functionality
+ΓùÅ Mobile responsiveness
+ΓùÅ Secure authentication
+ΓùÅ Organized code structure
+Architecture & Deployment
+ΓùÅ Code Structure: Maintain a clean folder structure with reusable components,
+proper naming conventions, and modular coding practices.
+ΓùÅ Environment Security: Use environment variables for sensitive data.
+ΓùÅ Live Deployment: The final project must be publicly accessible via hosting
+services such as Vercel, Netlify, or Render.
+Submission Requirements
+At the conclusion of the internship, the following must be submitted for evaluation:
+1. Live Project Link: A URL to the hosted, working application.
+2. GitHub Repository: Access to the complete source code with a history of
+proper commits.
+3. Project Report: A document detailing the overview, features, tech stack,
+challenges faced, and key learnings.
+4. Demo Video: A short walkthrough explaining features, workflow, and code
+structure.
+Evaluation Criteria
+Intern performance will be assessed based on:
+ΓùÅ Technical Quality: Code organization, backend logic, and database handling.
+ΓùÅ User Experience: UI/UX quality, responsiveness, and speed.
+ΓùÅ Execution: Full completion of features, successful deployment, and
+innovation.

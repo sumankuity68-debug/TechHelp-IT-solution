@@ -3,6 +3,7 @@
 
 import { Link } from 'react-router-dom';
 import Services from '../components/sections/Services';
+import PricingSection from '../components/sections/PricingSection';
 
 export default function ServicesPage() {
   return (
@@ -25,6 +26,7 @@ export default function ServicesPage() {
         </Link>
       </div>
       <Services />
+      <PricingSection />
     </div>
   );
 }
