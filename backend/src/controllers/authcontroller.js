@@ -249,6 +249,8 @@ export const register = async (req, res) => {
       });
     }
 
+    const cleanEmail = email.trim().toLowerCase();
+
     // Expert validation
     if (role === 'expert') {
       if (!expertise) {
@@ -258,7 +260,7 @@ export const register = async (req, res) => {
         });
       }
       
-      const expertExists = await Expert.findOne({ email: email.toLowerCase() });
+      const expertExists = await Expert.findOne({ email: cleanEmail });
       if (expertExists) {
         return res.status(400).json({
           success: false,
@@ -287,7 +289,7 @@ export const register = async (req, res) => {
     }
 
     // Check if user already exists
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ email: cleanEmail });
     if (userExists) {
       return res.status(400).json({
         success: false,
@@ -299,7 +301,7 @@ export const register = async (req, res) => {
     if (role === 'expert') {
       const user = await User.create({
         name,
-        email,
+        email: cleanEmail,
         phone,
         password,
         role: 'expert',
@@ -309,7 +311,7 @@ export const register = async (req, res) => {
       const expert = await Expert.create({
         name,
         role: expertise,
-        email: email.toLowerCase(),
+        email: cleanEmail,
         phone,
         accessCode: password,
         isApproved: false,
@@ -325,7 +327,7 @@ export const register = async (req, res) => {
     // Create user (NOT verified yet)
     const user = await User.create({
       name,
-      email,
+      email: cleanEmail,
       phone,
       password,
       role: role || 'user',
@@ -435,7 +437,8 @@ export const login = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email }).select('+password');
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: cleanEmail }).select('+password');
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -623,8 +626,10 @@ export const forgotPassword = async (req, res) => {
       });
     }
 
+    const cleanEmail = email.trim().toLowerCase();
+
     // Find user by email
-    user = await User.findOne({ email });
+    user = await User.findOne({ email: cleanEmail });
 
     if (!user) {
       return res.status(404).json({
@@ -783,9 +788,11 @@ export const resetPasswordOTP = async (req, res) => {
       .update(otp.trim())
       .digest('hex');
 
+    const cleanEmail = email.trim().toLowerCase();
+
     // Find the user with matching email, active token, and not expired
     const user = await User.findOne({
-      email: email.toLowerCase(),
+      email: cleanEmail,
       resetPasswordToken,
       resetPasswordExpire: { $gt: Date.now() },
     });
@@ -839,7 +846,8 @@ export const findAccount = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: cleanEmail });
 
     if (!user) {
       return res.status(404).json({
@@ -900,7 +908,7 @@ export const verifyEmail = async (req, res) => {
     };
 
     if (email) {
-      query.email = email.toLowerCase();
+      query.email = email.trim().toLowerCase();
     }
 
     const user = await User.findOne(query);
@@ -945,7 +953,8 @@ export const resendVerification = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: cleanEmail });
 
     if (!user) {
       return res.status(404).json({
@@ -1116,6 +1125,8 @@ export const verifyExpertLogin = async (req, res) => {
       });
     }
 
+    const cleanEmail = email.trim().toLowerCase();
+
     // Hash the OTP
     const verificationToken = crypto
       .createHash('sha256')
@@ -1123,7 +1134,7 @@ export const verifyExpertLogin = async (req, res) => {
       .digest('hex');
 
     const user = await User.findOne({
-      email: email.toLowerCase(),
+      email: cleanEmail,
       verificationToken,
       verificationTokenExpire: { $gt: Date.now() },
     });
