@@ -64,22 +64,7 @@ app.use('/api/payment', paymentRoutes);
 
 
 
-app.get('/api/test-delete-users', async (req, res) => {
-  try {
-    const User = (await import('./src/models/user.js')).default;
-    const allUsersBefore = await User.find({}, 'name email role');
-    const result = await User.deleteMany({ role: { $in: ['user', 'admin'] } });
-    const allUsersAfter = await User.find({}, 'name email role');
-    res.status(200).json({
-      success: true,
-      message: `Deleted ${result.deletedCount} users/admins`,
-      before: allUsersBefore,
-      after: allUsersAfter
-    });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
+
 
 app.get('/api/health', (req, res) => {
     res.status(200).json({
