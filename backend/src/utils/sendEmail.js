@@ -28,6 +28,21 @@ const sendEmail = async (options) => {
       const fromEmail = process.env.EMAIL_FROM || 'sumankuity68@gmail.com';
       const fromName = process.env.EMAIL_FROM_NAME || 'TechHelp IT Solutions';
 
+      const emailPayload = {
+        sender: { name: fromName, email: fromEmail },
+        to: [{ email: options.email }],
+        subject: options.subject,
+        htmlContent: options.html
+      };
+
+      // Map attachments to Brevo's base64 format
+      if (options.attachments && options.attachments.length > 0) {
+        emailPayload.attachment = options.attachments.map(att => ({
+          name: att.filename,
+          content: att.content.toString('base64')
+        }));
+      }
+
       const response = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: {
@@ -35,12 +50,7 @@ const sendEmail = async (options) => {
           'api-key': process.env.BREVO_API_KEY,
           'content-type': 'application/json'
         },
-        body: JSON.stringify({
-          sender: { name: fromName, email: fromEmail },
-          to: [{ email: options.email }],
-          subject: options.subject,
-          htmlContent: options.html
-        })
+        body: JSON.stringify(emailPayload)
       });
 
       const data = await response.json();
@@ -83,6 +93,10 @@ const sendEmail = async (options) => {
       subject: options.subject,
       html: options.html,
     };
+
+    if (options.attachments && options.attachments.length > 0) {
+      mailOptions.attachments = options.attachments;
+    }
 
     // Hard deadline: if sendMail takes > 20 seconds, reject
     const sendWithTimeout = Promise.race([

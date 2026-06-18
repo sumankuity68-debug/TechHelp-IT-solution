@@ -5,6 +5,7 @@ import Stripe from 'stripe';
 import Order from '../models/Order.js';
 import User from '../models/user.js';
 import sendEmail from '../utils/sendEmail.js';
+import { generateInvoicePDF } from '../utils/generateInvoicePDF.js';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder_for_render_startup_only');
 
@@ -405,12 +406,20 @@ async function sendInvoiceEmail(order) {
   `.trim();
 
   try {
+    const pdfBuffer = await generateInvoicePDF(order);
+
     await sendEmail({
       email:   order.customerEmail,
       subject: `Invoice ${order.invoiceNumber} — TechHelp IT Solutions`,
       html,
+      attachments: [
+        {
+          filename: `Invoice-${order.invoiceNumber}.pdf`,
+          content: pdfBuffer,
+        }
+      ]
     });
-    console.log(`[Stripe] 📧 Invoice emailed to ${order.customerEmail}`);
+    console.log(`[Stripe] 📧 Invoice emailed to ${order.customerEmail} with PDF attachment`);
   } catch (err) {
     console.error('[Stripe] Invoice email failed:', err.message);
   }
