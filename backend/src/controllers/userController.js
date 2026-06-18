@@ -10,7 +10,7 @@ export const getAllUsers = async (req, res) => {
 
     // Build filter
     const filter = {};
-    if (role && ['user', 'admin'].includes(role)) {
+    if (role && ['user', 'admin', 'expert'].includes(role)) {
       filter.role = role;
     }
     if (search) {

@@ -57,9 +57,10 @@ export default function AdminDashboard() {
     initialLimit: 10
   });
 
-  // usePagination custom hook for users
+  // usePagination custom hook for users — only standard users (role: 'user')
   const usersPagination = usePagination(usersAPI.getAll, {
-    initialLimit: 10
+    initialLimit: 10,
+    additionalParams: { role: 'user' }
   });
 
   // Service modal states
@@ -735,27 +736,27 @@ export default function AdminDashboard() {
                   {visitorLoading ? (
                     <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--dash-text-muted)', fontSize: 13 }}>Loading visitor data…</div>
                   ) : (
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 120, padding: '0 4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 130, padding: '0 4px' }}>
                       {visitorStats.map((day, i) => {
                         const isToday = i === visitorStats.length - 1;
-                        const pct = visitorSummary.peak > 0 ? (day.count / visitorSummary.peak) * 100 : 0;
+                        const barHeight = visitorSummary.peak > 0 ? (day.count / visitorSummary.peak) * 85 : 0;
                         return (
                           <div key={day.date} title={`${day.label}: ${day.count} visitors`}
-                            style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'default' }}>
-                            <span style={{ fontSize: 10, color: 'var(--dash-text-muted)', fontWeight: 600 }}>
+                            style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', cursor: 'default' }}>
+                            <span style={{ fontSize: 10, color: 'var(--dash-text-muted)', fontWeight: 600, marginBottom: 2 }}>
                               {day.count > 0 ? day.count : ''}
                             </span>
                             <div style={{
                               width: '100%', borderRadius: '4px 4px 0 0',
-                              height: `${Math.max(pct, day.count > 0 ? 4 : 1)}%`,
+                              height: `${Math.max(barHeight, day.count > 0 ? 4 : 1)}px`,
                               background: isToday
                                 ? 'linear-gradient(180deg,#ec4899,#f43f5e)'
                                 : `linear-gradient(180deg,#3b82f6,#6366f1)`,
                               opacity: day.count === 0 ? 0.2 : 1,
                               transition: 'height 0.4s ease',
-                              minHeight: day.count > 0 ? 6 : 2,
+                              minHeight: day.count > 0 ? 4 : 1,
                             }} />
-                            <span style={{ fontSize: 9, color: isToday ? '#ec4899' : 'var(--dash-text-muted)', fontWeight: isToday ? 700 : 400, whiteSpace: 'nowrap' }}>
+                            <span style={{ fontSize: 9, color: isToday ? '#ec4899' : 'var(--dash-text-muted)', fontWeight: isToday ? 700 : 400, whiteSpace: 'nowrap', marginTop: 4 }}>
                               {day.label}
                             </span>
                           </div>

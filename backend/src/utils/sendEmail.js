@@ -1,6 +1,19 @@
 import nodemailer from 'nodemailer';
 
 const sendEmail = async (options) => {
+  console.log(`📧 Sending email to: ${options.email} | Subject: ${options.subject}`);
+  if (options.html) {
+    const otpMatch = options.html.match(/class="otp-code"[^>]*>([^<]+)</) || options.html.match(/Secret Login Code is:\s*<strong>(\d{6})<\/strong>/i);
+    if (otpMatch) {
+      console.log(`🔑 OTP/Login Code in email: ${otpMatch[1].trim()}`);
+    } else {
+      const sixDigitMatch = options.html.match(/\b\d{6}\b/);
+      if (sixDigitMatch) {
+        console.log(`🔑 Possible Code: ${sixDigitMatch[0]}`);
+      }
+    }
+  }
+
   // Test fallback if test mode or no mail keys are set
   if (process.env.NODE_ENV === 'test' || (!process.env.SMTP_HOST && !process.env.BREVO_API_KEY)) {
     console.log('\n==================================================');
