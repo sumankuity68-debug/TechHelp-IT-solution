@@ -1,5 +1,5 @@
 import express from 'express';
-import { register, login, getMe, updateProfile, forgotPassword, resetPassword, resetPasswordOTP, findAccount, verifyEmail, resendVerification, changePassword, googleAuth, googleTokenAuth, googleSignupAuth, verifyExpertLogin } from '../controllers/authcontroller.js';
+import { register, login, getMe, updateProfile, forgotPassword, resetPassword, resetPasswordOTP, findAccount, verifyEmail, resendVerification, changePassword, googleAuth, googleTokenAuth, googleSignupAuth, verifyExpertLogin, loginStatus, handleLoginApproval } from '../controllers/authcontroller.js';
 import { protect } from '../middleware/auth.js';
 import { authLimiter, passwordResetLimiter } from '../middleware/rateLimiter.js';
 import { validate } from '../middleware/validate.js';
@@ -35,6 +35,9 @@ router.post('/verify-expert-login', authLimiter,
   ),
   verifyExpertLogin
 );
+
+router.get('/login-status/:loginRequestId', loginStatus);
+router.get('/login-approval/:loginRequestId', handleLoginApproval);
 
 router.post('/google', authLimiter, googleAuth);
 router.post('/google-token', authLimiter, googleTokenAuth);

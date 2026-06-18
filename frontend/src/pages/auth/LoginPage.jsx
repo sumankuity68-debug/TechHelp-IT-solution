@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
@@ -14,10 +14,43 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otp, setOtp] = useState('');
+  const [showApprovalPending, setShowApprovalPending] = useState(false);
+  const [loginRequestId, setLoginRequestId] = useState(null);
+  const pollIntervalRef = useRef(null);
 
   const navigate = useNavigate();
   const { login } = useAuth();
   const { showSuccess, showError } = useToast();
+
+  useEffect(() => {
+    if (showApprovalPending && loginRequestId) {
+      pollIntervalRef.current = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/auth/login-status/${loginRequestId}`);
+          const data = await res.json();
+          if (data.success) {
+            if (data.status === 'approved') {
+              clearInterval(pollIntervalRef.current);
+              login(data.user, data.token);
+              showSuccess('Login approved by Administrator!');
+              if (data.user.role === 'admin') navigate('/admin');
+              else if (data.user.role === 'expert') navigate('/expert/dashboard');
+              else navigate('/dashboard');
+            } else if (data.status === 'rejected') {
+              clearInterval(pollIntervalRef.current);
+              setShowApprovalPending(false);
+              setError('Your login request was denied by the administrator.');
+            }
+          }
+        } catch (err) {
+          console.error('Polling error:', err);
+        }
+      }, 3000);
+    }
+    return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    };
+  }, [showApprovalPending, loginRequestId, login, navigate, showSuccess]);
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -57,6 +90,14 @@ export default function LoginPage() {
       if (data.requiresTwoFactor) {
         setShowOtpInput(true);
         showSuccess(data.message || 'Authorization code required');
+        setLoading(false);
+        return;
+      }
+
+      if (data.requiresApproval) {
+        setShowApprovalPending(true);
+        setLoginRequestId(data.loginRequestId);
+        showSuccess(data.message || 'Login pending approval');
         setLoading(false);
         return;
       }
@@ -240,7 +281,34 @@ export default function LoginPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit}>
+        {showApprovalPending ? (
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>⏳</div>
+            <h3 style={{ color: 'white', marginBottom: 8 }}>Waiting for Approval</h3>
+            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 14, marginBottom: 24, lineHeight: '1.5' }}>
+              We've sent a notification to the administrator. Once they approve your login request, you'll be automatically redirected to your dashboard.
+            </p>
+            <div style={{ margin: '0 auto 24px', width: 36, height: 36, border: '3px solid rgba(255,255,255,0.2)', borderTop: '3px solid white', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+            <button
+              type="button"
+              onClick={() => {
+                setShowApprovalPending(false);
+                setLoginRequestId(null);
+                setError('');
+              }}
+              style={{
+                background: 'transparent', color: 'rgba(255,255,255,0.8)', border: '1px solid rgba(255,255,255,0.2)', padding: '10px 20px', borderRadius: 8, cursor: 'pointer', fontSize: 14, transition: 'all 0.2s'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'white'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.4)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.8)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)'; }}
+            >
+              Cancel Login
+            </button>
+            <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+          </div>
+        ) : (
+          <>
+            <form onSubmit={handleSubmit}>
           {/* Email */}
           <div style={{ marginBottom: 20 }}>
             <label

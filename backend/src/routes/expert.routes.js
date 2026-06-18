@@ -7,10 +7,13 @@ import {
   getMyExpertInquiries,
   updateExpertInquiryStatus,
   approveExpert,
+  handleRegistrationApproval,
 } from '../controllers/expertController.js';
 import { protect, admin, expert } from '../middleware/auth.js';
 
 const router = express.Router();
+
+router.get('/approve-registration/:id', handleRegistrationApproval);
 
 router.get('/', getAllExperts);
 router.post('/', protect, admin, createExpert);

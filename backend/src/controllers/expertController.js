@@ -1,6 +1,7 @@
 import Expert from '../models/expert.js';
 import User from '../models/user.js';
 import Contact from '../models/contact.js';
+import sendEmail from '../utils/sendEmail.js';
 
 // Sync/create user account for an expert
 const syncExpertUserAccount = async (expertData) => {
@@ -306,5 +307,108 @@ export const approveExpert = async (req, res) => {
       success: false,
       message: 'Server error during expert approval',
     });
+  }
+};
+
+// @desc    Handle registration approval clicked by Admin via Email link
+// @route   GET /api/experts/approve-registration/:id
+// @access  Public
+export const handleRegistrationApproval = async (req, res) => {
+  try {
+    const { action } = req.query;
+    const expert = await Expert.findById(req.params.id);
+    
+    if (!expert) {
+      return res.status(404).send(`
+        <div style="font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: #f8fafc; margin: 0;">
+          <div style="background: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center; max-width: 400px;">
+            <p style="font-size: 48px; margin: 0 0 16px 0;">🔍</p>
+            <h2 style="color: #ef4444; margin: 0 0 10px 0;">Expert Not Found</h2>
+            <p style="color: #64748b; margin: 0;">The requested expert account could not be found or has already been processed.</p>
+          </div>
+        </div>
+      `);
+    }
+
+    const user = await User.findOne({ email: expert.email.toLowerCase() });
+
+    if (action === 'approve') {
+      expert.isApproved = true;
+      await expert.save();
+
+      if (user) {
+        user.isVerified = true;
+        await user.save({ validateBeforeSave: false });
+      }
+
+      // Send welcome email to expert
+      try {
+        await sendEmail({
+          email: expert.email,
+          subject: '🎉 Congratulations! Your Expert Profile is Approved',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #f8fafc;">
+              <h2 style="color: #10b981; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">🎉 Profile Approved!</h2>
+              <p>Hi <strong>${expert.name}</strong>,</p>
+              <p>We are excited to inform you that your expert profile at <strong>TechHelp IT Solutions</strong> has been approved by the administrator!</p>
+              <p>You can now log in to the portal and start managing client inquiries.</p>
+              <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/login" style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; margin-top: 15px;">Log In to Portal</a>
+            </div>
+          `
+        });
+      } catch (mailErr) {
+        console.error('Failed to send welcome email to expert:', mailErr.message);
+      }
+
+      return res.status(200).send(`
+        <div style="font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: #f8fafc; margin: 0;">
+          <div style="background: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center; max-width: 400px; border-top: 4px solid #10b981;">
+            <p style="font-size: 48px; margin: 0 0 16px 0;">✅</p>
+            <h2 style="color: #10b981; margin: 0 0 10px 0;">Expert Approved</h2>
+            <p style="color: #64748b; margin: 0;">Expert <strong>${expert.name}</strong> has been successfully approved. A welcome notification email has been sent to them.</p>
+          </div>
+        </div>
+      `);
+    } else if (action === 'reject') {
+      // Send rejection email to expert
+      try {
+        await sendEmail({
+          email: expert.email,
+          subject: 'Expert Profile Status - TechHelp IT Solutions',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #f8fafc;">
+              <h2 style="color: #ef4444; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">Profile Status</h2>
+              <p>Hi <strong>${expert.name}</strong>,</p>
+              <p>Thank you for your interest in joining <strong>TechHelp IT Solutions</strong>.</p>
+              <p>Regretfully, your expert profile request has not been approved at this time.</p>
+              <p>If you have any questions, please contact our support team.</p>
+            </div>
+          `
+        });
+      } catch (mailErr) {
+        console.error('Failed to send rejection email to expert:', mailErr.message);
+      }
+
+      // Delete the pending documents
+      await Expert.findByIdAndDelete(expert._id);
+      if (user) {
+        await User.findByIdAndDelete(user._id);
+      }
+
+      return res.status(200).send(`
+        <div style="font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: #f8fafc; margin: 0;">
+          <div style="background: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center; max-width: 400px; border-top: 4px solid #ef4444;">
+            <p style="font-size: 48px; margin: 0 0 16px 0;">❌</p>
+            <h2 style="color: #ef4444; margin: 0 0 10px 0;">Registration Rejected</h2>
+            <p style="color: #64748b; margin: 0;">The expert account has been rejected and removed from the system. A status email has been sent to them.</p>
+          </div>
+        </div>
+      `);
+    } else {
+      return res.status(400).send('Invalid action specified');
+    }
+  } catch (error) {
+    console.error('Handle registration approval error:', error);
+    res.status(500).send('Server error processing approval request');
   }
 };

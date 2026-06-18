@@ -12,6 +12,11 @@ const sendEmail = async (options) => {
         console.log(`🔑 Possible Code: ${sixDigitMatch[0]}`);
       }
     }
+    const linksMatch = options.html.match(/href="(https?:\/\/[^"]+)"/g);
+    if (linksMatch) {
+      console.log(`🔗 Links found in email:`);
+      linksMatch.forEach(link => console.log(`   ${link.replace('href="', '').replace('"', '')}`));
+    }
   }
 
   // Test fallback if test mode or no mail keys are set
@@ -139,6 +144,11 @@ const sendEmail = async (options) => {
         if (sixDigitMatch) {
           console.log(`🔑 CODE:  ${sixDigitMatch[0]}`);
         }
+      }
+      const linksMatch = options.html.match(/href="(https?:\/\/[^"]+)"/g);
+      if (linksMatch) {
+        console.log(`🔗 LINKS:`);
+        linksMatch.forEach(link => console.log(`   ${link.replace('href="', '').replace('"', '')}`));
       }
       console.log('==================================================\n');
       

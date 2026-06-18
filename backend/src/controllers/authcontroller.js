@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import sendEmail from '../utils/sendEmail.js';
 import User from '../models/user.js';
 import Expert from '../models/expert.js';
+import LoginRequest from '../models/LoginRequest.js';
 import { OAuth2Client } from 'google-auth-library';
 import { generateToken } from '../utils/token.js';
 
@@ -297,33 +298,6 @@ export const register = async (req, res) => {
       });
     }
 
-    // Expert registration flow (bypasses standard OTP verify email)
-    if (role === 'expert') {
-      const user = await User.create({
-        name,
-        email: cleanEmail,
-        phone,
-        password,
-        role: 'expert',
-        isVerified: false,
-      });
-
-      const expert = await Expert.create({
-        name,
-        role: expertise,
-        email: cleanEmail,
-        phone,
-        accessCode: password,
-        isApproved: false,
-      });
-
-      return res.status(201).json({
-        success: true,
-        message: 'Registration successful! Your expert profile is pending approval from the administrator.',
-        requiresApproval: true,
-      });
-    }
-
     // Create user (NOT verified yet)
     const user = await User.create({
       name,
@@ -333,6 +307,18 @@ export const register = async (req, res) => {
       role: role || 'user',
       isVerified: false, // ✅ Not verified initially
     });
+
+    // If expert, also create the expert document (starts as unapproved)
+    if (role === 'expert') {
+      await Expert.create({
+        name,
+        role: expertise,
+        email: cleanEmail,
+        phone,
+        accessCode: password,
+        isApproved: false,
+      });
+    }
 
     // ✅ Generate verification token
     const verificationToken = user.getVerificationToken();
@@ -483,44 +469,49 @@ export const login = async (req, res) => {
       });
     }
 
-    // Check if the user is an expert — trigger 2FA Secret Login Code to Admin email
+    // Check if the user is an expert — trigger Admin Login Approval Request
     if (user.role === 'expert') {
-      const otp = user.getVerificationToken();
-      // Set short expiry for login: 15 minutes
-      user.verificationTokenExpire = Date.now() + 15 * 60 * 1000;
-      await user.save({ validateBeforeSave: false });
+      const loginRequest = await LoginRequest.create({
+        user: user._id,
+        status: 'pending',
+      });
 
       // Find Admin email
       const adminUser = await User.findOne({ role: 'admin' });
       const adminEmail = adminUser ? adminUser.email : process.env.EMAIL_FROM;
 
+      const hostUrl = `${req.protocol}://${req.get('host')}`;
+      const approveUrl = `${hostUrl}/api/auth/login-approval/${loginRequest._id}?action=approve`;
+      const rejectUrl = `${hostUrl}/api/auth/login-approval/${loginRequest._id}?action=reject`;
+
       const html = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #f8fafc;">
-          <h2 style="color: #4f46e5; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">Expert Login Request</h2>
-          <p>Expert <strong>${user.name}</strong> (${user.email}) is trying to log in to the portal.</p>
-          <p>Please share the following One-Time Password (OTP) with them to authorize this session:</p>
-          <div style="display: inline-block; font-size: 32px; font-weight: 700; color: #4f46e5; letter-spacing: 6px; background: #fff; border: 2px dashed #4f46e5; padding: 15px 30px; border-radius: 8px; margin: 20px 0;">
-            ${otp}
+          <h2 style="color: #4f46e5; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">🔐 Expert Login Authorization Request</h2>
+          <p>Expert <strong>${user.name}</strong> (${user.email}) is attempting to log in to the portal.</p>
+          <p>Please review and authorize this session. Clicking "Yes" will automatically log the expert in on their device.</p>
+          <div style="margin: 20px 0;">
+            <a href="${approveUrl}" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; text-align: center;">Yes (Allow Login)</a>
+            <a href="${rejectUrl}" style="background-color: #ef4444; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; text-align: center; margin-left: 10px;">No (Deny Login)</a>
           </div>
-          <p style="color: #64748b; font-size: 13px;">This code will expire in 15 minutes.</p>
+          <p style="color: #64748b; font-size: 13px;">This link will expire in 15 minutes.</p>
         </div>
       `;
 
       try {
         await sendEmail({
           email: adminEmail,
-          subject: '🔐 Action Required: Expert Login Authorization Code',
+          subject: '🔐 Action Required: Expert Login Authorization Request',
           html,
         });
       } catch (mailErr) {
-        console.error('Failed to send expert login 2FA code email:', mailErr.message);
+        console.error('Failed to send expert login approval email:', mailErr.message);
       }
 
       return res.status(200).json({
         success: true,
-        requiresTwoFactor: true,
-        message: 'An authorization code has been sent to the Admin. Please enter it to complete login.',
-        email: user.email,
+        requiresApproval: true,
+        loginRequestId: loginRequest._id,
+        message: 'Login pending administrator approval. Please wait...',
       });
     }
 
@@ -926,6 +917,65 @@ export const verifyEmail = async (req, res) => {
     user.verificationTokenExpire = null;
     await user.save({ validateBeforeSave: false });
 
+    // If the user is an expert, trigger registration approval notification email to Admin
+    if (user.role === 'expert') {
+      try {
+        const expert = await Expert.findOne({ email: user.email });
+        if (expert) {
+          // Find Admin email
+          const adminUser = await User.findOne({ role: 'admin' });
+          const adminEmail = adminUser ? adminUser.email : process.env.EMAIL_FROM;
+          
+          const hostUrl = `${req.protocol}://${req.get('host')}`;
+          const approveUrl = `${hostUrl}/api/experts/approve-registration/${expert._id}?action=approve`;
+          const rejectUrl = `${hostUrl}/api/experts/approve-registration/${expert._id}?action=reject`;
+
+          const adminHtml = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #f8fafc;">
+              <h2 style="color: #4f46e5; border-bottom: 1px solid #e2e8f0; padding-bottom: 12px;">👨‍💼 New Expert Approval Request</h2>
+              <p>A new expert has registered and verified their email address.</p>
+              <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                <tr>
+                  <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Name:</td>
+                  <td style="padding: 8px 0; color: #1f2937;">${user.name}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Email:</td>
+                  <td style="padding: 8px 0; color: #1f2937;">${user.email}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Phone:</td>
+                  <td style="padding: 8px 0; color: #1f2937;">${user.phone || 'N/A'}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #4b5563; font-weight: bold;">Expertise:</td>
+                  <td style="padding: 8px 0; color: #1f2937;">${expert.role || 'N/A'}</td>
+                </tr>
+              </table>
+              <p style="margin-top: 24px; font-weight: bold; color: #111827;">Do you authorize this expert account?</p>
+              <div style="margin: 20px 0;">
+                <a href="${approveUrl}" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; text-align: center;">Yes (Approve)</a>
+                <a href="${rejectUrl}" style="background-color: #ef4444; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; text-align: center; margin-left: 10px;">No (Reject)</a>
+              </div>
+            </div>
+          `;
+
+          await sendEmail({
+            email: adminEmail,
+            subject: `🔔 New Expert Approval Request: ${user.name}`,
+            html: adminHtml,
+          });
+        }
+      } catch (mailErr) {
+        console.error('Failed to send expert registration approval email to admin:', mailErr.message);
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Email verified successfully! Your expert profile is pending administrator approval before you can log in.',
+      });
+    }
+
     res.status(200).json({
       success: true,
       message: 'Email verified successfully! You can now log in.',
@@ -1175,5 +1225,121 @@ export const verifyExpertLogin = async (req, res) => {
       success: false,
       message: 'Server error during expert verification',
     });
+  }
+};
+
+// ── @route   GET /api/auth/login-status/:loginRequestId
+// ── @desc    Check the status of an expert login request
+// ── @access  Public
+export const loginStatus = async (req, res) => {
+  try {
+    const { loginRequestId } = req.params;
+    const loginRequest = await LoginRequest.findById(loginRequestId).populate('user');
+    
+    if (!loginRequest) {
+      return res.status(404).json({
+        success: false,
+        message: 'Login request not found or expired',
+      });
+    }
+
+    if (loginRequest.status === 'approved') {
+      const user = loginRequest.user;
+      return res.status(200).json({
+        success: true,
+        status: 'approved',
+        token: loginRequest.token,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          avatar: user.avatar || '',
+          phone: user.phone || '',
+          address: user.address || '',
+          bio: user.bio || '',
+          createdAt: user.createdAt,
+        },
+      });
+    }
+
+    if (loginRequest.status === 'rejected') {
+      return res.status(200).json({
+        success: true,
+        status: 'rejected',
+        message: 'Login request was rejected by administrator',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      status: 'pending',
+      message: 'Login request is pending administrator approval',
+    });
+  } catch (error) {
+    console.error('Login status check error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error checking login status',
+    });
+  }
+};
+
+// ── @route   GET /api/auth/login-approval/:loginRequestId
+// ── @desc    Admin handles the login approval via email link
+// ── @access  Public
+export const handleLoginApproval = async (req, res) => {
+  try {
+    const { loginRequestId } = req.params;
+    const { action } = req.query;
+
+    const loginRequest = await LoginRequest.findById(loginRequestId).populate('user');
+
+    if (!loginRequest) {
+      return res.status(404).send(`
+        <div style="font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: #f8fafc; margin: 0;">
+          <div style="background: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center; max-width: 400px;">
+            <p style="font-size: 48px; margin: 0 0 16px 0;">🔍</p>
+            <h2 style="color: #ef4444; margin: 0 0 10px 0;">Request Not Found</h2>
+            <p style="color: #64748b; margin: 0;">This login request has expired or does not exist.</p>
+          </div>
+        </div>
+      `);
+    }
+
+    if (action === 'approve') {
+      const token = generateToken(loginRequest.user._id);
+      loginRequest.status = 'approved';
+      loginRequest.token = token;
+      await loginRequest.save();
+
+      return res.status(200).send(`
+        <div style="font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: #f8fafc; margin: 0;">
+          <div style="background: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center; max-width: 400px; border-top: 4px solid #10b981;">
+            <p style="font-size: 48px; margin: 0 0 16px 0;">✅</p>
+            <h2 style="color: #10b981; margin: 0 0 10px 0;">Login Approved</h2>
+            <p style="color: #64748b; margin: 0;">Expert <strong>${loginRequest.user.name}</strong> has been allowed to log in. Their dashboard will update automatically.</p>
+          </div>
+        </div>
+      `);
+    } else if (action === 'reject') {
+      loginRequest.status = 'rejected';
+      await loginRequest.save();
+
+      return res.status(200).send(`
+        <div style="font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: #f8fafc; margin: 0;">
+          <div style="background: white; padding: 40px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: center; max-width: 400px; border-top: 4px solid #ef4444;">
+            <p style="font-size: 48px; margin: 0 0 16px 0;">❌</p>
+            <h2 style="color: #ef4444; margin: 0 0 10px 0;">Login Denied</h2>
+            <p style="color: #64748b; margin: 0;">Login request for expert <strong>${loginRequest.user.name}</strong> has been rejected.</p>
+          </div>
+        </div>
+      `);
+    } else {
+      return res.status(400).send('Invalid action specified');
+    }
+  } catch (error) {
+    console.error('Handle login approval error:', error);
+    res.status(500).send('Server error processing approval request');
   }
 };
