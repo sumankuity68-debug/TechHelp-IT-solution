@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useToast } from '../../context/ToastContext';
 import usePagination from '../../hooks/usePagination';
-import { contactAPI, usersAPI, servicesAPI, expertsAPI } from '../../utils/api';
+import { contactAPI, usersAPI, servicesAPI, expertsAPI, ordersAPI, visitorsAPI } from '../../utils/api';
 
 export default function AdminDashboard() {
   const { user, logout, token } = useAuth();
@@ -19,11 +19,24 @@ export default function AdminDashboard() {
     totalServices: 0,
     totalExperts: 0,
     pendingInquiries: 0,
+    totalPaid: 0,
   });
   const [recentContacts, setRecentContacts] = useState([]);
   const [services, setServices] = useState([]);
   const [experts, setExperts] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Paid Orders state
+  const [orders, setOrders]           = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersPage, setOrdersPage]   = useState(1);
+  const [ordersTotal, setOrdersTotal] = useState(0);
+  const ORDERS_LIMIT = 10;
+
+  // Visitor stats state
+  const [visitorStats, setVisitorStats]   = useState([]);
+  const [visitorSummary, setVisitorSummary] = useState({ total: 0, today: 0, peak: 0 });
+  const [visitorLoading, setVisitorLoading] = useState(false);
 
   // usePagination custom hook for inquiries (contacts)
   const inquiriesPagination = usePagination(contactAPI.getAll, {
@@ -69,7 +82,41 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchDashboardData();
+    fetchVisitorStats();
   }, []);
+
+  // Fetch paid orders whenever the payments tab is opened or page changes
+  useEffect(() => {
+    if (activeTab === 'payments') fetchOrders();
+  }, [activeTab, ordersPage]);
+
+  const fetchOrders = async () => {
+    setOrdersLoading(true);
+    try {
+      const data = await ordersAPI.getAll({ page: ordersPage, limit: ORDERS_LIMIT });
+      if (data.success) {
+        setOrders(data.data);
+        setOrdersTotal(data.pagination?.total || 0);
+        setStats(prev => ({ ...prev, totalPaid: data.pagination?.total || 0 }));
+      }
+    } catch (err) {
+      console.error('Orders fetch error:', err.message);
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
+  const fetchVisitorStats = async () => {
+    setVisitorLoading(true);
+    try {
+      const data = await visitorsAPI.getStats();
+      if (data.success) {
+        setVisitorStats(data.stats || []);
+        setVisitorSummary(data.summary || { total: 0, today: 0, peak: 0 });
+      }
+    } catch { /* silent */ }
+    setVisitorLoading(false);
+  };
 
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -556,11 +603,12 @@ export default function AdminDashboard() {
         transition: 'all 0.3s ease',
       }}>
         {[
-          { id: 'overview', label: 'Overview', icon: '📊' },
-          { id: 'inquiries', label: 'Inquiries', icon: '📧' },
-          { id: 'services', label: 'Services', icon: '⚙️' },
-          { id: 'experts', label: 'Experts', icon: '👨‍💼' },
-          { id: 'users', label: 'Users', icon: '👥' },
+          { id: 'overview',  label: 'Overview',   icon: '📊' },
+          { id: 'inquiries', label: 'Inquiries',   icon: '📧' },
+          { id: 'payments',  label: 'Paid Users',  icon: '💳' },
+          { id: 'services',  label: 'Services',    icon: '⚙️' },
+          { id: 'experts',   label: 'Experts',     icon: '👨‍💼' },
+          { id: 'users',     label: 'Users',       icon: '👥' },
         ].map(tab => (
           <button
             key={tab.id}
@@ -616,32 +664,91 @@ export default function AdminDashboard() {
                 {/* Stats Grid */}
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                   gap: '1rem',
                   marginBottom: '2rem',
                 }}>
                   {[
-                    { label: 'Total Inquiries', value: stats.totalContacts },
-                    { label: 'Pending Inquiries', value: stats.pendingInquiries },
-                    { label: 'Total Services', value: stats.totalServices },
-                    { label: 'Total Experts', value: stats.totalExperts },
-                    { label: 'Total Users', value: stats.totalUsers },
+                    { label: 'Total Inquiries',   value: stats.totalContacts,   icon: '📧', color: '#3b82f6' },
+                    { label: 'Pending Inquiries',  value: stats.pendingInquiries, icon: '⏳', color: '#f59e0b' },
+                    { label: 'Total Services',     value: stats.totalServices,   icon: '⚙️', color: '#8b5cf6' },
+                    { label: 'Total Experts',      value: stats.totalExperts,    icon: '👨‍💼', color: '#10b981' },
+                    { label: 'Total Users',        value: stats.totalUsers,      icon: '👥', color: '#06b6d4' },
+                    { label: 'Paid Users',         value: stats.totalPaid,       icon: '💳', color: '#22c55e' },
+                    { label: "Today's Visitors",   value: visitorSummary.today,  icon: '👁️', color: '#ec4899' },
                   ].map((s, idx) => (
-                    <div key={idx} style={{
-                      background: 'var(--dash-btn-bg)',
-                      border: 'var(--dash-btn-border)',
-                      borderRadius: 12,
-                      padding: '1.5rem',
-                      transition: 'all 0.3s ease',
-                    }}>
-                      <p style={{ fontSize: 13, color: 'var(--dash-text-secondary)', margin: '0 0 8px 0', transition: 'color 0.3s ease' }}>
-                        {s.label}
-                      </p>
-                      <p style={{ fontSize: 36, fontWeight: 700, color: 'var(--dash-text-primary)', margin: 0, transition: 'color 0.3s ease' }}>
-                        {s.value}
-                      </p>
+                    <div key={idx}
+                      onClick={() => s.label === 'Paid Users' ? setActiveTab('payments') : null}
+                      style={{
+                        background: 'var(--dash-btn-bg)',
+                        border: 'var(--dash-btn-border)',
+                        borderRadius: 12,
+                        padding: '1.25rem 1.5rem',
+                        transition: 'all 0.25s ease',
+                        cursor: s.label === 'Paid Users' ? 'pointer' : 'default',
+                        display: 'flex', alignItems: 'center', gap: 14,
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${s.color}18`; }}
+                      onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}
+                    >
+                      <div style={{ width: 44, height: 44, borderRadius: 10, background: `${s.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
+                        {s.icon}
+                      </div>
+                      <div>
+                        <p style={{ fontSize: 12, color: 'var(--dash-text-secondary)', margin: '0 0 4px 0', fontWeight: 500 }}>{s.label}</p>
+                        <p style={{ fontSize: 30, fontWeight: 800, color: s.color, margin: 0, lineHeight: 1 }}>{s.value}</p>
+                      </div>
                     </div>
                   ))}
+                </div>
+
+                {/* ── Visitor Bar Chart ── */}
+                <div style={{
+                  background: 'var(--dash-list-item-bg)',
+                  border: 'var(--dash-card-border)',
+                  borderRadius: 12, padding: '1.5rem',
+                  marginBottom: '1.5rem',
+                  transition: 'all 0.3s ease',
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: 8 }}>
+                    <h3 style={{ color: 'var(--dash-text-primary)', fontSize: 16, margin: 0 }}>📈 Website Visitors — Last 14 Days</h3>
+                    <div style={{ display: 'flex', gap: 20, fontSize: 12, color: 'var(--dash-text-secondary)' }}>
+                      <span>Today: <strong style={{ color: '#ec4899' }}>{visitorSummary.today}</strong></span>
+                      <span>14-day total: <strong style={{ color: 'var(--dash-text-primary)' }}>{visitorSummary.total}</strong></span>
+                      <span>Peak: <strong style={{ color: '#3b82f6' }}>{visitorSummary.peak}</strong></span>
+                    </div>
+                  </div>
+                  {visitorLoading ? (
+                    <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--dash-text-muted)', fontSize: 13 }}>Loading visitor data…</div>
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 120, padding: '0 4px' }}>
+                      {visitorStats.map((day, i) => {
+                        const isToday = i === visitorStats.length - 1;
+                        const pct = visitorSummary.peak > 0 ? (day.count / visitorSummary.peak) * 100 : 0;
+                        return (
+                          <div key={day.date} title={`${day.label}: ${day.count} visitors`}
+                            style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'default' }}>
+                            <span style={{ fontSize: 10, color: 'var(--dash-text-muted)', fontWeight: 600 }}>
+                              {day.count > 0 ? day.count : ''}
+                            </span>
+                            <div style={{
+                              width: '100%', borderRadius: '4px 4px 0 0',
+                              height: `${Math.max(pct, day.count > 0 ? 4 : 1)}%`,
+                              background: isToday
+                                ? 'linear-gradient(180deg,#ec4899,#f43f5e)'
+                                : `linear-gradient(180deg,#3b82f6,#6366f1)`,
+                              opacity: day.count === 0 ? 0.2 : 1,
+                              transition: 'height 0.4s ease',
+                              minHeight: day.count > 0 ? 6 : 2,
+                            }} />
+                            <span style={{ fontSize: 9, color: isToday ? '#ec4899' : 'var(--dash-text-muted)', fontWeight: isToday ? 700 : 400, whiteSpace: 'nowrap' }}>
+                              {day.label}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 <div style={{
@@ -1339,6 +1446,140 @@ export default function AdminDashboard() {
                       </div>
                     ))}
                   </div>
+                )}
+              </div>
+            )}
+            {/* ── Paid Users Tab ── */}
+            {activeTab === 'payments' && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: 12 }}>
+                  <h2 style={{ color: 'var(--dash-text-primary)', fontSize: 22, margin: 0 }}>
+                    💳 Paid Users ({ordersTotal})
+                  </h2>
+                  <button
+                    onClick={fetchOrders}
+                    style={{ background: 'var(--dash-btn-bg)', border: 'var(--dash-btn-border)', color: 'var(--dash-btn-text)', padding: '10px 18px', borderRadius: 10, fontSize: 13, cursor: 'pointer' }}
+                  >🔄 Refresh</button>
+                </div>
+
+                {ordersLoading ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {[1,2,3].map(i => (
+                      <div key={i} style={{ background: 'var(--dash-card-bg)', border: 'var(--dash-card-border)', borderRadius: 12, padding: '1.25rem 1.5rem' }}>
+                        <div className="skeleton" style={{ width: '30%', height: 16, marginBottom: 10 }} />
+                        <div className="skeleton" style={{ width: '55%', height: 12 }} />
+                      </div>
+                    ))}
+                  </div>
+                ) : orders.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--dash-text-muted)' }}>
+                    <p style={{ fontSize: 48, margin: '0 0 1rem' }}>💳</p>
+                    <p style={{ fontSize: 16 }}>No paid orders yet</p>
+                    <p style={{ fontSize: 13, marginTop: 8 }}>Payments will appear here after customers complete checkout.</p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Table header */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1.2fr 1fr 1fr 1.2fr', gap: 12, padding: '10px 16px', fontSize: 11, fontWeight: 700, color: 'var(--dash-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+                      <span>Customer</span>
+                      <span>Email</span>
+                      <span>Plan</span>
+                      <span>Billing</span>
+                      <span>Amount</span>
+                      <span>Invoice / Date</span>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {orders.map(order => {
+                        const planColor = order.planId === 'starter' ? '#3b82f6' : order.planId === 'professional' ? '#8b5cf6' : '#10b981';
+                        return (
+                          <div key={order._id} style={{
+                            background: 'var(--dash-card-bg)',
+                            border: 'var(--dash-card-border)',
+                            borderRadius: 12,
+                            padding: '14px 16px',
+                            display: 'grid',
+                            gridTemplateColumns: '2fr 2fr 1.2fr 1fr 1fr 1.2fr',
+                            gap: 12,
+                            alignItems: 'center',
+                            transition: 'all 0.2s',
+                          }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'var(--dash-list-item-bg)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'var(--dash-card-bg)'}
+                          >
+                            {/* Customer Name */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <div style={{ width: 36, height: 36, borderRadius: '50%', background: `${planColor}20`, color: planColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                                {order.customerName?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2) || 'U'}
+                              </div>
+                              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--dash-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {order.customerName}
+                              </span>
+                            </div>
+
+                            {/* Email */}
+                            <span style={{ fontSize: 13, color: 'var(--dash-text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {order.customerEmail}
+                            </span>
+
+                            {/* Plan */}
+                            <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                              <span style={{
+                                fontSize: 11, fontWeight: 700, padding: '4px 10px',
+                                borderRadius: 20,
+                                background: `${planColor}18`,
+                                color: planColor,
+                                whiteSpace: 'nowrap',
+                              }}>
+                                {order.planName}
+                              </span>
+                            </span>
+
+                            {/* Billing */}
+                            <span style={{ fontSize: 12, color: 'var(--dash-text-secondary)', textTransform: 'capitalize' }}>
+                              {order.billing === 'yearly' ? '📅 Yearly' : '🗓️ Monthly'}
+                            </span>
+
+                            {/* Amount */}
+                            <span style={{ fontSize: 15, fontWeight: 700, color: '#22c55e' }}>
+                              ${(order.amount / 100).toFixed(2)}
+                            </span>
+
+                            {/* Invoice + Date */}
+                            <div>
+                              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--dash-text-primary)', marginBottom: 2 }}>
+                                {order.invoiceNumber || '—'}
+                              </div>
+                              <div style={{ fontSize: 11, color: 'var(--dash-text-muted)' }}>
+                                {new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Pagination */}
+                    {Math.ceil(ordersTotal / ORDERS_LIMIT) > 1 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: 'var(--dash-card-border)' }}>
+                        <span style={{ fontSize: 13, color: 'var(--dash-text-secondary)' }}>
+                          Page {ordersPage} of {Math.ceil(ordersTotal / ORDERS_LIMIT)} ({ordersTotal} orders)
+                        </span>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button
+                            onClick={() => setOrdersPage(p => Math.max(1, p - 1))}
+                            disabled={ordersPage === 1}
+                            style={{ background: 'var(--dash-btn-bg)', border: 'var(--dash-btn-border)', color: 'var(--dash-btn-text)', padding: '8px 16px', borderRadius: 8, fontSize: 13, cursor: ordersPage === 1 ? 'not-allowed' : 'pointer', opacity: ordersPage === 1 ? 0.5 : 1 }}
+                          >← Prev</button>
+                          <button
+                            onClick={() => setOrdersPage(p => p + 1)}
+                            disabled={ordersPage >= Math.ceil(ordersTotal / ORDERS_LIMIT)}
+                            style={{ background: 'var(--dash-btn-bg)', border: 'var(--dash-btn-border)', color: 'var(--dash-btn-text)', padding: '8px 16px', borderRadius: 8, fontSize: 13, cursor: ordersPage >= Math.ceil(ordersTotal / ORDERS_LIMIT) ? 'not-allowed' : 'pointer', opacity: ordersPage >= Math.ceil(ordersTotal / ORDERS_LIMIT) ? 0.5 : 1 }}
+                          >Next →</button>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}

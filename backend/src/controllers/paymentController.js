@@ -129,6 +129,42 @@ export const getSessionDetails = async (req, res) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// GET /api/payment/orders
+// Admin only — returns all paid orders, newest first
+// ─────────────────────────────────────────────────────────────────────────────
+export const getOrders = async (req, res) => {
+  try {
+    const page  = parseInt(req.query.page,  10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 20;
+    const skip  = (page - 1) * limit;
+
+    const [orders, total] = await Promise.all([
+      Order.find({ status: 'paid' })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Order.countDocuments({ status: 'paid' }),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: orders,
+      pagination: {
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+        limit,
+      },
+    });
+  } catch (err) {
+    console.error('[Orders] getOrders error:', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
+// ─────────────────────────────────────────────────────────────────────────────
 // POST /api/payment/webhook
 // Called by Stripe when payment_intent.succeeded / checkout.session.completed
 // Must use raw body — handled in index.js with express.raw()

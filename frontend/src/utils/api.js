@@ -242,3 +242,33 @@ export const expertsAPI = {
       body: JSON.stringify({ status }),
     }).then(handleResponse),
 };
+
+// ═══════════════════════════════════════════════════════════════════════
+// ORDERS (Admin only)
+// ═══════════════════════════════════════════════════════════════════════
+export const ordersAPI = {
+  // Paginated: { page, limit }
+  getAll: (params = {}) =>
+    fetch(`${BASE}/payment/orders${buildQuery(params)}`, {
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+    }).then(handleResponse),
+};
+
+// ═══════════════════════════════════════════════════════════════════════
+// VISITORS
+// ═══════════════════════════════════════════════════════════════════════
+export const visitorsAPI = {
+  // Call once per session to count a visit
+  ping: () =>
+    fetch(`${BASE}/visitors/ping`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    }).catch(() => {}), // silent fail
+
+  // Admin only — last 14 days stats
+  getStats: () =>
+    fetch(`${BASE}/visitors/stats`, {
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+    }).then(handleResponse),
+};
+

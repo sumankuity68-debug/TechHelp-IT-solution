@@ -11,6 +11,7 @@ import testimonialRoutes from './src/routes/testimonial.routes.js';
 import userRoutes from './src/routes/user.routes.js';
 import expertRoutes from './src/routes/expert.routes.js';
 import paymentRoutes from './src/routes/payment.routes.js';
+import visitorRoutes from './src/routes/visitor.routes.js';
 import { apiLimiter } from './src/middleware/rateLimiter.js';
 
 connectDB();
@@ -61,6 +62,7 @@ app.use('/api/testimonials', testimonialRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/experts', expertRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/visitors', visitorRoutes);
 
 
 

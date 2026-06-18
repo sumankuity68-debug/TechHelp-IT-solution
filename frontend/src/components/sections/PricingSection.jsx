@@ -4,6 +4,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 import { motion } from 'framer-motion';
 import {
   fadeIn,
@@ -268,6 +269,7 @@ export default function PricingSection() {
   const [loadingPlanId, setLoadingPlanId] = useState(null); // which button is loading
   const navigate = useNavigate();
   const { user, token } = useAuth();
+  const { showError, showInfo } = useToast();
 
   const handleSelect = async (plan) => {
     // Enterprise → contact page
@@ -278,6 +280,7 @@ export default function PricingSection() {
 
     // Must be logged in to pay
     if (!user) {
+      showInfo('Please log in to purchase a plan.');
       navigate('/login');
       return;
     }
@@ -300,7 +303,7 @@ export default function PricingSection() {
       // Redirect to Stripe Checkout
       window.location.href = data.url;
     } catch (err) {
-      alert(`Payment error: ${err.message}`);
+      showError(`Payment error: ${err.message}`);
       setLoadingPlanId(null);
     }
   };
