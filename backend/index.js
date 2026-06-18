@@ -12,7 +12,6 @@ import userRoutes from './src/routes/user.routes.js';
 import expertRoutes from './src/routes/expert.routes.js';
 import paymentRoutes from './src/routes/payment.routes.js';
 import { apiLimiter } from './src/middleware/rateLimiter.js';
-import sendEmail from './src/utils/sendEmail.js';
 
 connectDB();
 const app = express();
@@ -63,51 +62,6 @@ app.use('/api/users', userRoutes);
 app.use('/api/experts', expertRoutes);
 app.use('/api/payment', paymentRoutes);
 
-app.get('/api/test-live-email', async (req, res) => {
-  try {
-    await sendEmail({
-      email: 'sumankuity68@gmail.com',
-      subject: '✨ Live Render SMTP Diagnostic Test',
-      html: '<h1>Live Test</h1><p>If you see this, SMTP is working on Render!</p>'
-    });
-    res.status(200).json({ success: true, message: 'Email sent successfully from Render!' });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message, stack: err.stack });
-  }
-});
-
-app.get('/api/test-list-users', async (req, res) => {
-  try {
-    const User = (await import('./src/models/user.js')).default;
-    const users = await User.find({}, 'name email role isVerified createdAt');
-    const formatted = users.map(u => `${u.name} | ${u.email} | ${u.role} | Verified: ${u.isVerified} | Created: ${u.createdAt}`).join('\n');
-    res.type('text/plain').send(formatted);
-  } catch (err) {
-    res.status(500).send(err.message);
-  }
-});
-
-app.get('/api/test-user-exist', async (req, res) => {
-  try {
-    const User = (await import('./src/models/user.js')).default;
-    const user = await User.findOne({ email: req.query.email });
-    res.status(200).json({ success: true, exists: !!user, user });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-app.get('/api/test-env', (req, res) => {
-  res.json({
-    SMTP_HOST: process.env.SMTP_HOST,
-    SMTP_PORT: process.env.SMTP_PORT,
-    SMTP_USER: process.env.SMTP_USER,
-    SMTP_PASS_EXISTS: !!process.env.SMTP_PASS,
-    EMAIL_FROM: process.env.EMAIL_FROM,
-    EMAIL_FROM_NAME: process.env.EMAIL_FROM_NAME,
-    NODE_ENV: process.env.NODE_ENV
-  });
-});
 
 
 app.get('/api/health', (req, res) => {
