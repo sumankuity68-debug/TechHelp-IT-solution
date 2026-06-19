@@ -57,7 +57,15 @@ export default function Chatbot() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end">
+    <div style={{
+      position: 'fixed',
+      bottom: '24px',
+      right: '24px',
+      zIndex: 9999,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'flex-end'
+    }}>
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -65,52 +73,115 @@ export default function Chatbot() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="mb-4 w-80 sm:w-96 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700 flex flex-col"
-            style={{ height: '500px', maxHeight: '70vh' }}
+            style={{
+              marginBottom: '16px',
+              width: '350px',
+              background: 'var(--bg-primary)',
+              borderRadius: '16px',
+              boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
+              border: '1px solid var(--border-color)',
+              display: 'flex',
+              flexDirection: 'column',
+              height: '500px',
+              maxHeight: '70vh',
+              overflow: 'hidden'
+            }}
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 text-white flex justify-between items-center">
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+            <div style={{
+              background: 'linear-gradient(to right, var(--logo-blue-mid), var(--logo-blue-end))',
+              padding: '16px',
+              color: '#fff',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{
+                  width: '32px', height: '32px',
+                  borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '18px'
+                }}>
                   🤖
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm">TechHelp Assistant</h3>
-                  <p className="text-xs text-blue-100">Powered by AI</p>
+                  <h3 style={{ fontSize: '14px', fontWeight: '600', margin: 0 }}>TechHelp Assistant</h3>
+                  <p style={{ fontSize: '11px', margin: 0, opacity: 0.8 }}>Powered by AI</p>
                 </div>
               </div>
               <button 
                 onClick={() => setIsOpen(false)}
-                className="text-white hover:bg-white/20 p-1 rounded-full transition-colors"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  borderRadius: '50%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
             {/* Chat Area */}
-            <div className="flex-1 p-4 overflow-y-auto bg-gray-50 dark:bg-gray-900 space-y-4">
+            <div style={{
+              flex: 1,
+              padding: '16px',
+              overflowY: 'auto',
+              background: 'var(--bg-secondary)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px'
+            }}>
               {messages.map((msg) => (
-                <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div 
-                    className={`max-w-[80%] p-3 rounded-2xl text-sm shadow-sm ${
-                      msg.sender === 'user' 
-                        ? 'bg-blue-600 text-white rounded-tr-none' 
-                        : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-100 dark:border-gray-700 rounded-tl-none'
-                    }`}
-                  >
+                <div key={msg.id} style={{
+                  display: 'flex',
+                  justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start'
+                }}>
+                  <div style={{
+                    maxWidth: '80%',
+                    padding: '10px 14px',
+                    borderRadius: '16px',
+                    fontSize: '14px',
+                    lineHeight: '1.4',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                    ...(msg.sender === 'user' ? {
+                      background: 'var(--accent-color)',
+                      color: '#fff',
+                      borderTopRightRadius: '0px'
+                    } : {
+                      background: 'var(--bg-primary)',
+                      color: 'var(--text-primary)',
+                      border: '1px solid var(--border-color)',
+                      borderTopLeftRadius: '0px'
+                    })
+                  }}>
                     {msg.text}
                   </div>
                 </div>
               ))}
               
               {isTyping && (
-                <div className="flex justify-start">
-                  <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 p-4 rounded-2xl rounded-tl-none flex space-x-2 shadow-sm">
-                    <motion.div className="w-2 h-2 bg-gray-400 rounded-full" animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0 }} />
-                    <motion.div className="w-2 h-2 bg-gray-400 rounded-full" animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 }} />
-                    <motion.div className="w-2 h-2 bg-gray-400 rounded-full" animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.4 }} />
+                <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                  <div style={{
+                    background: 'var(--bg-primary)',
+                    border: '1px solid var(--border-color)',
+                    padding: '12px 16px',
+                    borderRadius: '16px',
+                    borderTopLeftRadius: '0px',
+                    display: 'flex',
+                    gap: '6px',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                  }}>
+                    <motion.div style={{ width: '6px', height: '6px', background: 'var(--text-muted)', borderRadius: '50%' }} animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0 }} />
+                    <motion.div style={{ width: '6px', height: '6px', background: 'var(--text-muted)', borderRadius: '50%' }} animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 }} />
+                    <motion.div style={{ width: '6px', height: '6px', background: 'var(--text-muted)', borderRadius: '50%' }} animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.4 }} />
                   </div>
                 </div>
               )}
@@ -118,22 +189,50 @@ export default function Chatbot() {
             </div>
 
             {/* Input Area */}
-            <div className="p-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-              <form onSubmit={handleSend} className="flex relative">
+            <div style={{
+              padding: '12px',
+              background: 'var(--bg-primary)',
+              borderTop: '1px solid var(--border-color)'
+            }}>
+              <form onSubmit={handleSend} style={{ display: 'flex', position: 'relative' }}>
                 <input
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Type your message..."
-                  className="w-full pl-4 pr-12 py-3 rounded-full bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                   disabled={isTyping}
+                  style={{
+                    width: '100%',
+                    padding: '10px 45px 10px 16px',
+                    borderRadius: '24px',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--input-bg)',
+                    color: 'var(--text-primary)',
+                    fontSize: '14px',
+                    outline: 'none'
+                  }}
+                  onFocus={(e) => e.target.style.borderColor = 'var(--accent-color)'}
+                  onBlur={(e) => e.target.style.borderColor = 'var(--border-color)'}
                 />
                 <button 
                   type="submit" 
                   disabled={!input.trim() || isTyping}
-                  className="absolute right-1 top-1 bottom-1 w-10 flex items-center justify-center bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:opacity-50 disabled:hover:bg-blue-600 transition-colors"
+                  style={{
+                    position: 'absolute',
+                    right: '4px',
+                    top: '4px',
+                    bottom: '4px',
+                    width: '32px',
+                    borderRadius: '50%',
+                    background: 'var(--accent-color)',
+                    color: '#fff',
+                    border: 'none',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: (!input.trim() || isTyping) ? 'not-allowed' : 'pointer',
+                    opacity: (!input.trim() || isTyping) ? 0.5 : 1
+                  }}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                   </svg>
                 </button>
@@ -148,14 +247,26 @@ export default function Chatbot() {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full flex items-center justify-center shadow-xl shadow-blue-500/30 transition-colors"
+        style={{
+          width: '56px',
+          height: '56px',
+          background: 'var(--accent-color)',
+          color: '#fff',
+          borderRadius: '50%',
+          border: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          boxShadow: '0 8px 24px rgba(0, 123, 255, 0.4)'
+        }}
       >
         {isOpen ? (
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
         ) : (
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
           </svg>
         )}
