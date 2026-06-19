@@ -191,38 +191,78 @@ export default function BookMeetingPage() {
                   onBlur={(e) => { e.target.style.borderColor = 'var(--border-color)'; e.target.style.boxShadow = 'none'; }}
                 />
               </div>
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 flex items-start space-x-3 border border-blue-100 dark:border-blue-800/50 mt-4">
-              <svg className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <div className="text-sm text-blue-800 dark:text-blue-200">
+              <div>
+                <label style={labelStyle}>Select Time</label>
+                <select
+                  name="time"
+                  value={formData.time}
+                  onChange={handleChange}
+                  style={inputStyle}
+                  onFocus={(e) => { e.target.style.borderColor = 'var(--accent-color)'; e.target.style.boxShadow = '0 0 0 3px rgba(0, 123, 255, 0.1)'; }}
+                  onBlur={(e) => { e.target.style.borderColor = 'var(--border-color)'; e.target.style.boxShadow = 'none'; }}
+                >
+                  <option value="">Choose a time slot...</option>
+                  <option value="09:00 AM">09:00 AM IST</option>
+                  <option value="10:00 AM">10:00 AM IST</option>
+                  <option value="11:30 AM">11:30 AM IST</option>
+                  <option value="01:00 PM">01:00 PM IST</option>
+                  <option value="02:30 PM">02:30 PM IST</option>
+                  <option value="04:00 PM">04:00 PM IST</option>
+                  <option value="05:30 PM">05:30 PM IST</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{
+              background: 'rgba(0, 123, 255, 0.05)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '12px',
+              padding: '16px',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '12px',
+              marginTop: '16px'
+            }}>
+              <div style={{ fontSize: '20px' }}>ℹ️</div>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
                 <p>We'll send a confirmation email to <strong>{user?.email}</strong> once your meeting is scheduled.</p>
               </div>
             </div>
 
             {/* Submit Button */}
-            <div className="pt-4">
-              <motion.button
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
+            <div style={{ paddingTop: '16px' }}>
+              <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-200 flex justify-center items-center relative overflow-hidden group"
+                style={{
+                  width: '100%',
+                  padding: '16px',
+                  background: loading ? 'var(--text-muted)' : 'var(--accent-color)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  fontWeight: '700',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s',
+                  boxShadow: loading ? 'none' : '0 4px 12px rgba(0, 123, 255, 0.2)'
+                }}
+                onMouseEnter={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.background = 'var(--accent-hover)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!loading) {
+                    e.currentTarget.style.background = 'var(--accent-color)';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }
+                }}
               >
-                <div className="absolute inset-0 w-full h-full bg-white/20 group-hover:translate-x-full transition-transform duration-500 ease-out -translate-x-full skew-x-12"></div>
-                {loading ? (
-                  <span className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin"></span>
-                ) : (
-                  <span className="flex items-center space-x-2 text-lg">
-                    <span>Confirm Meeting Request</span>
-                    <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                    </svg>
-                  </span>
-                )}
-              </motion.button>
+                {loading ? 'Confirming...' : 'Confirm Meeting Request →'}
+              </button>
             </div>
-            
           </form>
         </div>
       </motion.div>
