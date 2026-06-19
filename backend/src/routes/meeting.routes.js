@@ -5,7 +5,7 @@ import {
   getAllMeetings, 
   updateMeeting 
 } from '../controllers/meetingController.js';
-import { protect, authorize } from '../middleware/auth.js';
+import { protect, admin } from '../middleware/auth.js';
 
 const router = express.Router();
 
@@ -16,7 +16,7 @@ router.post('/', createMeeting);
 router.get('/my-meetings', getMyMeetings);
 
 // Admin only routes
-router.get('/', authorize('admin'), getAllMeetings);
-router.put('/:id', authorize('admin'), updateMeeting);
+router.get('/', admin, getAllMeetings);
+router.put('/:id', admin, updateMeeting);
 
 export default router;
