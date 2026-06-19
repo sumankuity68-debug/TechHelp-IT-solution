@@ -88,6 +88,7 @@ export const googleAuth = async (req, res) => {
         address: user.address || '',
         bio: user.bio || '',
         createdAt: user.createdAt,
+        isVerified: user.isVerified,
       },
     });
   } catch (error) {
@@ -153,6 +154,7 @@ export const googleTokenAuth = async (req, res) => {
         address: user.address || '',
         bio: user.bio || '',
         createdAt: user.createdAt,
+        isVerified: user.isVerified,
       },
     });
   } catch (error) {
@@ -224,6 +226,7 @@ export const googleSignupAuth = async (req, res) => {
         address: user.address || '',
         bio: user.bio || '',
         createdAt: user.createdAt,
+        isVerified: user.isVerified,
       },
     });
   } catch (error) {
@@ -531,6 +534,7 @@ export const login = async (req, res) => {
         address: user.address || '',
         bio: user.bio || '',
         createdAt: user.createdAt,
+        isVerified: user.isVerified,
       },
     });
   } catch (error) {
@@ -558,6 +562,7 @@ export const getMe = async (req, res) => {
         address: user.address,
         bio: user.bio,
         createdAt: user.createdAt,
+        isVerified: user.isVerified,
       },
     });
   } catch (error) {
@@ -1217,6 +1222,7 @@ export const verifyExpertLogin = async (req, res) => {
         address: user.address || '',
         bio: user.bio || '',
         createdAt: user.createdAt,
+        isVerified: user.isVerified,
       },
     });
   } catch (error) {
@@ -1259,6 +1265,7 @@ export const loginStatus = async (req, res) => {
           address: user.address || '',
           bio: user.bio || '',
           createdAt: user.createdAt,
+        isVerified: user.isVerified,
         },
       });
     }
