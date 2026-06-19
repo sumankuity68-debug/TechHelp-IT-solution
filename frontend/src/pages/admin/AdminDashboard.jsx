@@ -139,7 +139,7 @@ export default function AdminDashboard() {
       const [contactData, servicesData, usersData, expertsData] = await Promise.all([
         contactAPI.getAll({ limit: 100 }), // Get enough entries to compute stats/recent
         servicesAPI.getAll(),
-        usersAPI.getAll({ limit: 1 }), // Just query for total user count
+        usersAPI.getAll({ limit: 1, role: 'user' }), // Just query for total user count
         expertsAPI.getAll(),
       ]);
 
@@ -737,8 +737,9 @@ export default function AdminDashboard() {
                   {visitorLoading ? (
                     <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--dash-text-muted)', fontSize: 13 }}>Loading visitor data…</div>
                   ) : (
-                    <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 130, padding: '0 4px' }}>
-                      {visitorStats.map((day, i) => {
+                    <div style={{ overflowX: 'auto', paddingBottom: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 130, padding: '0 4px', minWidth: '400px' }}>
+                        {visitorStats.map((day, i) => {
                         const isToday = i === visitorStats.length - 1;
                         const barHeight = visitorSummary.peak > 0 ? (day.count / visitorSummary.peak) * 85 : 0;
                         return (
@@ -763,6 +764,7 @@ export default function AdminDashboard() {
                           </div>
                         );
                       })}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1515,108 +1517,110 @@ export default function AdminDashboard() {
                     <p style={{ fontSize: 13, marginTop: 8 }}>Payments will appear here after customers complete checkout.</p>
                   </div>
                 ) : (
-                  <>
-                    {/* Table header */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1.2fr 1fr 1fr 1.2fr', gap: 12, padding: '10px 16px', fontSize: 11, fontWeight: 700, color: 'var(--dash-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
-                      <span>Customer</span>
-                      <span>Email</span>
-                      <span>Plan</span>
-                      <span>Billing</span>
-                      <span>Amount</span>
-                      <span>Invoice / Date</span>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {orders.map(order => {
-                        const planColor = order.planId === 'starter' ? '#3b82f6' : order.planId === 'professional' ? '#8b5cf6' : '#10b981';
-                        return (
-                          <div key={order._id} style={{
-                            background: 'var(--dash-card-bg)',
-                            border: 'var(--dash-card-border)',
-                            borderRadius: 12,
-                            padding: '14px 16px',
-                            display: 'grid',
-                            gridTemplateColumns: '2fr 2fr 1.2fr 1fr 1fr 1.2fr',
-                            gap: 12,
-                            alignItems: 'center',
-                            transition: 'all 0.2s',
-                          }}
-                            onMouseEnter={e => e.currentTarget.style.background = 'var(--dash-list-item-bg)'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'var(--dash-card-bg)'}
-                          >
-                            {/* Customer Name */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <div style={{ width: 36, height: 36, borderRadius: '50%', background: `${planColor}20`, color: planColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
-                                {order.customerName?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2) || 'U'}
-                              </div>
-                              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--dash-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {order.customerName}
-                              </span>
-                            </div>
-
-                            {/* Email */}
-                            <span style={{ fontSize: 13, color: 'var(--dash-text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {order.customerEmail}
-                            </span>
-
-                            {/* Plan */}
-                            <span style={{ display: 'inline-flex', alignItems: 'center' }}>
-                              <span style={{
-                                fontSize: 11, fontWeight: 700, padding: '4px 10px',
-                                borderRadius: 20,
-                                background: `${planColor}18`,
-                                color: planColor,
-                                whiteSpace: 'nowrap',
-                              }}>
-                                {order.planName}
-                              </span>
-                            </span>
-
-                            {/* Billing */}
-                            <span style={{ fontSize: 12, color: 'var(--dash-text-secondary)', textTransform: 'capitalize' }}>
-                              {order.billing === 'yearly' ? '📅 Yearly' : '🗓️ Monthly'}
-                            </span>
-
-                            {/* Amount */}
-                            <span style={{ fontSize: 15, fontWeight: 700, color: '#22c55e' }}>
-                              ${(order.amount / 100).toFixed(2)}
-                            </span>
-
-                            {/* Invoice + Date */}
-                            <div>
-                              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--dash-text-primary)', marginBottom: 2 }}>
-                                {order.invoiceNumber || '—'}
-                              </div>
-                              <div style={{ fontSize: 11, color: 'var(--dash-text-muted)' }}>
-                                {new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Pagination */}
-                    {Math.ceil(ordersTotal / ORDERS_LIMIT) > 1 && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: 'var(--dash-card-border)' }}>
-                        <span style={{ fontSize: 13, color: 'var(--dash-text-secondary)' }}>
-                          Page {ordersPage} of {Math.ceil(ordersTotal / ORDERS_LIMIT)} ({ordersTotal} orders)
-                        </span>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <button
-                            onClick={() => setOrdersPage(p => Math.max(1, p - 1))}
-                            disabled={ordersPage === 1}
-                            style={{ background: 'var(--dash-btn-bg)', border: 'var(--dash-btn-border)', color: 'var(--dash-btn-text)', padding: '8px 16px', borderRadius: 8, fontSize: 13, cursor: ordersPage === 1 ? 'not-allowed' : 'pointer', opacity: ordersPage === 1 ? 0.5 : 1 }}
-                          >← Prev</button>
-                          <button
-                            onClick={() => setOrdersPage(p => p + 1)}
-                            disabled={ordersPage >= Math.ceil(ordersTotal / ORDERS_LIMIT)}
-                            style={{ background: 'var(--dash-btn-bg)', border: 'var(--dash-btn-border)', color: 'var(--dash-btn-text)', padding: '8px 16px', borderRadius: 8, fontSize: 13, cursor: ordersPage >= Math.ceil(ordersTotal / ORDERS_LIMIT) ? 'not-allowed' : 'pointer', opacity: ordersPage >= Math.ceil(ordersTotal / ORDERS_LIMIT) ? 0.5 : 1 }}
-                          >Next →</button>
-                        </div>
+                  <div style={{ overflowX: 'auto', paddingBottom: '16px' }}>
+                    <div style={{ minWidth: '800px' }}>
+                      {/* Table header */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1.2fr 1fr 1fr 1.2fr', gap: 12, padding: '10px 16px', fontSize: 11, fontWeight: 700, color: 'var(--dash-text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+                        <span>Customer</span>
+                        <span>Email</span>
+                        <span>Plan</span>
+                        <span>Billing</span>
+                        <span>Amount</span>
+                        <span>Invoice / Date</span>
                       </div>
-                    )}
-                  </>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {orders.map(order => {
+                          const planColor = order.planId === 'starter' ? '#3b82f6' : order.planId === 'professional' ? '#8b5cf6' : '#10b981';
+                          return (
+                            <div key={order._id} style={{
+                              background: 'var(--dash-card-bg)',
+                              border: 'var(--dash-card-border)',
+                              borderRadius: 12,
+                              padding: '14px 16px',
+                              display: 'grid',
+                              gridTemplateColumns: '2fr 2fr 1.2fr 1fr 1fr 1.2fr',
+                              gap: 12,
+                              alignItems: 'center',
+                              transition: 'all 0.2s',
+                            }}
+                              onMouseEnter={e => e.currentTarget.style.background = 'var(--dash-list-item-bg)'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'var(--dash-card-bg)'}
+                            >
+                              {/* Customer Name */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                <div style={{ width: 36, height: 36, borderRadius: '50%', background: `${planColor}20`, color: planColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                                  {order.customerName?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2) || 'U'}
+                                </div>
+                                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--dash-text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {order.customerName}
+                                </span>
+                              </div>
+
+                              {/* Email */}
+                              <span style={{ fontSize: 13, color: 'var(--dash-text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {order.customerEmail}
+                              </span>
+
+                              {/* Plan */}
+                              <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                                <span style={{
+                                  fontSize: 11, fontWeight: 700, padding: '4px 10px',
+                                  borderRadius: 20,
+                                  background: `${planColor}18`,
+                                  color: planColor,
+                                  whiteSpace: 'nowrap',
+                                }}>
+                                  {order.planName}
+                                </span>
+                              </span>
+
+                              {/* Billing */}
+                              <span style={{ fontSize: 12, color: 'var(--dash-text-secondary)', textTransform: 'capitalize' }}>
+                                {order.billing === 'yearly' ? '📅 Yearly' : '🗓️ Monthly'}
+                              </span>
+
+                              {/* Amount */}
+                              <span style={{ fontSize: 15, fontWeight: 700, color: '#22c55e' }}>
+                                ${(order.amount / 100).toFixed(2)}
+                              </span>
+
+                              {/* Invoice + Date */}
+                              <div>
+                                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--dash-text-primary)', marginBottom: 2 }}>
+                                  {order.invoiceNumber || '—'}
+                                </div>
+                                <div style={{ fontSize: 11, color: 'var(--dash-text-muted)' }}>
+                                  {new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Pagination */}
+                      {Math.ceil(ordersTotal / ORDERS_LIMIT) > 1 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: 'var(--dash-card-border)' }}>
+                          <span style={{ fontSize: 13, color: 'var(--dash-text-secondary)' }}>
+                            Page {ordersPage} of {Math.ceil(ordersTotal / ORDERS_LIMIT)} ({ordersTotal} orders)
+                          </span>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button
+                              onClick={() => setOrdersPage(p => Math.max(1, p - 1))}
+                              disabled={ordersPage === 1}
+                              style={{ background: 'var(--dash-btn-bg)', border: 'var(--dash-btn-border)', color: 'var(--dash-btn-text)', padding: '8px 16px', borderRadius: 8, fontSize: 13, cursor: ordersPage === 1 ? 'not-allowed' : 'pointer', opacity: ordersPage === 1 ? 0.5 : 1 }}
+                            >← Prev</button>
+                            <button
+                              onClick={() => setOrdersPage(p => p + 1)}
+                              disabled={ordersPage >= Math.ceil(ordersTotal / ORDERS_LIMIT)}
+                              style={{ background: 'var(--dash-btn-bg)', border: 'var(--dash-btn-border)', color: 'var(--dash-btn-text)', padding: '8px 16px', borderRadius: 8, fontSize: 13, cursor: ordersPage >= Math.ceil(ordersTotal / ORDERS_LIMIT) ? 'not-allowed' : 'pointer', opacity: ordersPage >= Math.ceil(ordersTotal / ORDERS_LIMIT) ? 0.5 : 1 }}
+                            >Next →</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
             )}
