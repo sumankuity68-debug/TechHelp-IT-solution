@@ -277,3 +277,31 @@ export const visitorsAPI = {
     }).then(handleResponse),
 };
 
+// ═══════════════════════════════════════════════════════════════════════
+// MEETINGS
+// ═══════════════════════════════════════════════════════════════════════
+export const meetingsAPI = {
+  create: (data) =>
+    fetch(`${BASE}/meetings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+      body: JSON.stringify(data),
+    }).then(handleResponse),
+
+  getMy: () =>
+    fetch(`${BASE}/meetings/my-meetings`, {
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+    }).then(handleResponse),
+
+  getAll: () =>
+    fetch(`${BASE}/meetings`, {
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+    }).then(handleResponse),
+
+  update: (id, data) =>
+    fetch(`${BASE}/meetings/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+      body: JSON.stringify(data),
+    }).then(handleResponse),
+};

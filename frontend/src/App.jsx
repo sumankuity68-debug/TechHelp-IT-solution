@@ -36,6 +36,7 @@ const AdminDashboard     = React.lazy(() => import('./pages/admin/AdminDashboard
 const NotFoundPage       = React.lazy(() => import('./pages/NotFoundPage'));
 const PaymentSuccessPage = React.lazy(() => import('./pages/payment/PaymentSuccessPage'));
 const PaymentCancelPage  = React.lazy(() => import('./pages/payment/PaymentCancelPage'));
+const BookMeetingPage    = React.lazy(() => import('./pages/BookMeetingPage'));
 
 function App() {
   return (
@@ -56,6 +57,14 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <Layout><Suspense fallback={<FormPageSkeleton />}><RatingPage /></Suspense></Layout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/book-meeting"
+                    element={
+                      <ProtectedRoute>
+                        <Layout><Suspense fallback={<FormPageSkeleton />}><BookMeetingPage /></Suspense></Layout>
                       </ProtectedRoute>
                     }
                   />

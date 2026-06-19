@@ -1,6 +1,6 @@
-# TechHelp IT Solutions
+# 🚀 TechHelp IT Solutions
 
-A full-stack IT agency web application built with **React**, **Node.js**, **Express**, and **MongoDB**. Features JWT-based authentication, a dynamic services system, contact form management, and an admin dashboard — all wired to a RESTful API backend.
+A complete, production-ready Full-Stack IT Agency web application built using the **MERN Stack** (MongoDB, Express, React, Node.js). This project was developed as a comprehensive internship submission, demonstrating industry-level proficiency in modern web development, secure authentication, database management, and responsive UI/UX design.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)
@@ -8,137 +8,130 @@ A full-stack IT agency web application built with **React**, **Node.js**, **Expr
 ![MongoDB](https://img.shields.io/badge/mongodb-mongoose-47A248?logo=mongodb)
 ![Express](https://img.shields.io/badge/express-4.x-000000?logo=express)
 ![Vite](https://img.shields.io/badge/vite-5.x-646CFF?logo=vite)
-![Lighthouse](https://img.shields.io/badge/Lighthouse-96%2F100-brightgreen?logo=lighthouse&logoColor=white)
 
-> 🚧 **Live Demo:** Coming soon — deployment in progress.
-
----
-
-## Table of Contents
-
-- [About](#about)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [Environment Variables](#environment-variables)
-- [API Reference](#api-reference)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing)
-- [License](#license)
+> 🚀 **Live Demo (Frontend):** [https://techhelp-it-solution.vercel.app](https://techhelp-it-solution.vercel.app)
+> ⚙️ **Live API (Backend):** [https://techhelp-backend.onrender.com](https://techhelp-backend.onrender.com)
 
 ---
 
-## About
+## 📑 Table of Contents
 
-TechHelp IT Solutions is a production-style agency website where users can browse services, submit contact inquiries, register/login, and manage their profile. Admins get full CRUD control over services and contact submissions through protected API routes.
-
-The goal of this project was to practice building a real-world monorepo with a separate frontend and backend, proper auth flows, and clean REST API design — the kind of setup you'd see in a small product team.
-
----
-
-## Features
-
-- **JWT Authentication** — Register, login, protected routes, role-based access (user/admin)
-- **User Profile** — View and update name, phone, address, bio, and avatar
-- **Services Management** — Public listing + admin-only create, update, delete
-- **Contact Form** — Public submission with admin-only status management
-- **Dark / Light Mode** — Persisted via localStorage, toggles across the full UI
-- **3D Parallax Hero** — Mouse-reactive card animations on the landing page
-- **Responsive Design** — Mobile-first layout across all pages
-- **Form Validation** — Client-side validation on login, signup, and contact forms
+- [Features](#-features)
+- [Tech Stack](#-tech-stack)
+- [Project Architecture](#-project-architecture)
+- [Installation & Setup](#-installation--setup)
+- [Environment Variables](#-environment-variables)
+- [API Reference](#-api-reference)
+- [Database Structure](#-database-structure)
+- [License](#-license)
 
 ---
 
-## Tech Stack
+## ✨ Features
 
-| Layer | Technology |
+This platform goes beyond basic CRUD operations by implementing advanced, real-world features:
+
+### 🔐 Advanced Authentication & Authorization
+- **Role-Based Access Control:** Distinct dashboards and permissions for `Users`, `Experts`, and `Admins`.
+- **JWT & bcrypt:** Secure password encryption and session management.
+- **Google OAuth Integration:** Seamless one-click login and registration.
+- **Email OTP Verification:** Automated email verification for new accounts and secure password resets using **Nodemailer**.
+
+### 💻 Dynamic Dashboards
+- **Admin Panel:** Manage users, approve/deny expert applications, and manage service listings and contact inquiries.
+- **Expert Portal:** A specialized dashboard for IT experts to manage their tasks.
+- **User Dashboard:** Personalized space to track service requests and update profile information (including avatar uploads).
+
+### 🎨 Modern UI/UX
+- **Responsive Design:** 100% mobile-first, ensuring perfect rendering on all devices.
+- **Dark/Light Mode:** Integrated theme toggling utilizing Context API and Tailwind CSS.
+- **Micro-Animations:** Smooth, professional transitions and 3D parallax effects using **Framer Motion**.
+
+### 💳 Integrations & Advanced Functionality
+- **Payment Gateway:** Secure transaction processing using **Stripe**.
+- **Automated Notifications:** Email alerts via Nodemailer and SMS integrations via **Twilio**.
+- **PDF Generation:** Dynamically generated invoices and reports using **PDFKit**.
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technologies |
 |---|---|
-| Frontend | React 18, Vite, React Router v6 |
-| Styling | Tailwind CSS + custom CSS variables |
-| Backend | Node.js, Express 4 |
-| Database | MongoDB (via Mongoose) |
-| Auth | JWT + bcryptjs |
-| Dev Tools | Nodemon, ESLint |
+| **Frontend** | React 18, Vite, React Router v6, Context API |
+| **Styling & UI** | Tailwind CSS, Framer Motion |
+| **Backend** | Node.js, Express 4 |
+| **Database** | MongoDB & Mongoose |
+| **Authentication**| JWT, bcryptjs, Google Auth Library |
+| **Third-Party** | Stripe (Payments), Nodemailer (Email), Twilio (SMS), PDFKit |
 
 ---
 
-## Project Structure
+## 📂 Project Architecture
+
+A clean, monorepo-style structure separating the client and server environments.
 
 ```
 TechHelp-IT-solution/
-├── frontend/
-│   ├── public/
-│   └── src/
-│       ├── components/
-│       │   ├── layout/          # Navbar, Footer
-│       │   └── sections/        # Hero, About, Services, Testimonials, Contact
-│       ├── context/             # Auth context provider
-│       ├── hooks/               # Custom React hooks
-│       ├── pages/
-│       │   ├── auth/            # LoginPage, SignupPage
-│       │   ├── dashboard/       # Admin dashboard
-│       │   └── ProfilePage.jsx
-│       ├── utils/               # Axios API helpers
-│       ├── App.jsx
-│       └── main.jsx
+├── frontend/                  # React + Vite Client
+│   ├── src/
+│   │   ├── components/        # Reusable UI components (Layouts, Forms, Sections)
+│   │   ├── context/           # Global state (Auth, Theme, Toast)
+│   │   ├── pages/             # Route-level components (Home, Dashboards, Auth)
+│   │   ├── utils/             # Axios API helpers
+│   │   └── App.jsx            # Main Router with lazy-loaded routes
+│   └── package.json
 │
-└── backend/
-    ├── index.js                 # Express app entry point
-    └── src/
-        ├── config/              # MongoDB connection
-        ├── controllers/         # Route handlers
-        ├── middleware/          # JWT auth guard, admin check
-        ├── models/              # Mongoose schemas
-        └── routes/              # Express routers
+└── backend/                   # Node + Express Server
+    ├── src/
+    │   ├── config/            # DB & Environment configs
+    │   ├── controllers/       # Business logic (Auth, Services, Payments)
+    │   ├── middleware/        # JWT Guards, Error Handling, Role Checks
+    │   ├── models/            # Mongoose Schemas (User, Expert, Service, Request)
+    │   ├── routes/            # Express endpoints
+    │   └── utils/             # Helper functions (Email sender, Token generator)
+    ├── index.js               # Server Entry Point
+    └── package.json
 ```
 
 ---
 
-## Getting Started
+## 🚀 Installation & Setup
 
 ### Prerequisites
+- Node.js (v18 or higher)
+- MongoDB (Local instance or MongoDB Atlas cluster)
 
-- Node.js >= 18
-- MongoDB (local or [Atlas](https://www.mongodb.com/atlas))
-- npm
-
-### 1. Clone the repository
-
+### 1. Clone the Repository
 ```bash
 git clone https://github.com/sumankuity68-debug/TechHelp-IT-solution.git
 cd TechHelp-IT-solution
 ```
 
-### 2. Setup the Backend
-
+### 2. Backend Setup
 ```bash
 cd backend
 npm install
-cp ../.env.example .env
-# Fill in your values in .env
+# Copy the example environment file and fill in your keys
+cp .env.example .env
 npm run dev
 ```
+*The backend server will run on `http://localhost:5000`*
 
-Server starts at: `http://localhost:5000`
-
-### 3. Setup the Frontend
-
-Open a new terminal:
-
+### 3. Frontend Setup
+Open a new terminal window:
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-
-App runs at: `http://localhost:5173`
+*The frontend application will run on `http://localhost:5173`*
 
 ---
 
-## Environment Variables
+## 🔐 Environment Variables
 
-Copy `.env.example` to `backend/.env` and fill in your values:
+You will need to configure your `.env` file in the `backend` directory. Here are the required keys:
 
 ```env
 PORT=5000
@@ -146,70 +139,48 @@ NODE_ENV=development
 MONGO_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret_key
 JWT_EXPIRE=30d
-```
 
-See [`.env.example`](./.env.example) for the full reference.
+# Email Configuration (Nodemailer)
+EMAIL_SERVICE=gmail
+EMAIL_USER=your_email@gmail.com
+EMAIL_PASS=your_app_password
 
----
-
-## API Reference
-
-Base URL: `http://localhost:5000/api`
-
-### Auth Routes — `/api/auth`
-
-| Method | Endpoint | Access | Description |
-|--------|----------|--------|-------------|
-| `POST` | `/register` | Public | Register a new user |
-| `POST` | `/login` | Public | Login and receive JWT token |
-| `GET` | `/me` | Private | Get current logged-in user |
-| `PUT` | `/profile` | Private | Update user profile |
-
-### Services Routes — `/api/services`
-
-| Method | Endpoint | Access | Description |
-|--------|----------|--------|-------------|
-| `GET` | `/` | Public | Get all active services |
-| `POST` | `/` | Admin | Create a new service |
-| `PUT` | `/:id` | Admin | Update a service |
-| `DELETE` | `/:id` | Admin | Delete a service |
-
-### Contact Routes — `/api/contact`
-
-| Method | Endpoint | Access | Description |
-|--------|----------|--------|-------------|
-| `POST` | `/` | Public | Submit a contact inquiry |
-| `GET` | `/` | Admin | Get all contact inquiries |
-| `PUT` | `/:id` | Admin | Update inquiry status |
-| `DELETE` | `/:id` | Admin | Delete an inquiry |
-
-### Health Check
-
-```
-GET /api/health
+# Optional Integrations
+STRIPE_SECRET_KEY=your_stripe_key
+GOOGLE_CLIENT_ID=your_google_oauth_client_id
 ```
 
 ---
 
-## Roadmap
+## 📡 API Reference (Core Routes)
 
-- [x] User authentication (JWT)
-- [x] Services CRUD API
-- [x] Contact form API
-- [x] User profile update
-- [ ] Admin dashboard UI
-- [ ] Email notifications on contact form submission
-- [ ] Deploy to Railway / Render + Vercel
+**Base URL:** `http://localhost:5000/api`
+
+| Method | Endpoint | Access | Description |
+|--------|----------|--------|-------------|
+| `POST` | `/auth/register` | Public | Register a new user & trigger OTP |
+| `POST` | `/auth/login` | Public | Authenticate user & return JWT |
+| `POST` | `/auth/google` | Public | Authenticate via Google OAuth |
+| `GET`  | `/services` | Public | Fetch all available IT services |
+| `POST` | `/services` | Admin | Create a new service listing |
+| `POST` | `/contact` | Public | Submit an inquiry/contact form |
+| `GET`  | `/contact` | Admin | Fetch all contact submissions |
+| `POST` | `/payment/create` | User | Initialize Stripe payment session |
 
 ---
 
-## Contributing
+## 🗄️ Database Structure
 
-Contributions, issues, and feature requests are welcome. See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+The project uses MongoDB with the following primary collections:
+1. **Users:** Stores Name, Email, encrypted Password, Role (user/admin), Avatar, Address.
+2. **Experts:** Specialized collection for IT staff, storing expertise areas and approval status.
+3. **Services:** Stores Service Name, Description, Pricing, and Images.
+4. **Inquiries/Contacts:** Stores Contact Name, Email, Message, and Status (Pending/Resolved).
+5. **LoginRequests:** Manages expert login authorization requests pending Admin approval.
 
 ---
 
-## License
+## 📝 License
 
 This project is licensed under the [MIT License](./LICENSE).  
-© 2025 Suman Kuity
+© 2026 Suman Kuity

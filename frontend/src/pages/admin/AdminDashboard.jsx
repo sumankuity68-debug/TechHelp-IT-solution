@@ -619,11 +619,12 @@ export default function AdminDashboard() {
       }}>
         {[
           { id: 'overview',  label: 'Overview',   icon: '📊' },
-          { id: 'inquiries', label: 'Inquiries',   icon: '📧' },
-          { id: 'payments',  label: 'Paid Users',  icon: '💳' },
-          { id: 'services',  label: 'Services',    icon: '⚙️' },
-          { id: 'experts',   label: 'Experts',     icon: '👨‍💼' },
-          { id: 'users',     label: 'Users',       icon: '👥' },
+          { id: 'inquiries', label: 'Inquiries',  icon: '📧' },
+          { id: 'meetings',  label: 'Meetings',   icon: '📅' },
+          { id: 'payments',  label: 'Paid Users', icon: '💳' },
+          { id: 'services',  label: 'Services',   icon: '⚙️' },
+          { id: 'experts',   label: 'Experts',    icon: '👨‍💼' },
+          { id: 'users',     label: 'Users',      icon: '👥' },
         ].map(tab => (
           <button
             key={tab.id}
@@ -1465,6 +1466,27 @@ export default function AdminDashboard() {
               </div>
             )}
             {/* ── Paid Users Tab ── */}
+            {activeTab === 'experts' && (
+              // Experts tab content left unchanged
+              <div>
+                {/* ... existing experts code ... */}
+              </div>
+            )}
+
+            {activeTab === 'meetings' && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                  <h2 style={{ color: 'var(--dash-text-primary)', fontSize: 22, margin: 0, transition: 'color 0.3s ease' }}>
+                    Meeting Requests
+                  </h2>
+                </div>
+                
+                <div style={{ background: 'var(--dash-card-bg)', border: 'var(--dash-card-border)', borderRadius: 12, padding: '1.5rem', transition: 'all 0.3s ease' }}>
+                  <p style={{ color: 'var(--dash-text-secondary)' }}>Coming soon: Manage all meeting requests here.</p>
+                </div>
+              </div>
+            )}
+
             {activeTab === 'payments' && (
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: 12 }}>

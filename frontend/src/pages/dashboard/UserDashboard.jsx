@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { useToast } from '../../context/ToastContext';
-import { contactAPI, ordersAPI } from '../../utils/api';
+import { contactAPI, ordersAPI, meetingsAPI } from '../../utils/api';
 
 export default function UserDashboard() {
   const { user, logout, token } = useAuth();
@@ -16,6 +16,9 @@ export default function UserDashboard() {
   const [loadingContacts, setLoadingContacts] = useState(true);
   const [fetchError, setFetchError]   = useState('');
   const [expandedCardId, setExpandedCardId] = useState(null);
+
+  const [myMeetings, setMyMeetings] = useState([]);
+  const [loadingMeetings, setLoadingMeetings] = useState(true);
 
   const [activeOrder, setActiveOrder] = useState(null);
   const [loadingOrder, setLoadingOrder] = useState(true);
@@ -52,10 +55,25 @@ export default function UserDashboard() {
     }
   }, [token]);
 
+  // ── Fetch the user's meetings ──────────────────────────────────────────
+  const fetchMyMeetings = useCallback(async () => {
+    if (!token) return;
+    setLoadingMeetings(true);
+    try {
+      const data = await meetingsAPI.getMy();
+      setMyMeetings(data.meetings || []);
+    } catch (err) {
+      console.error('Failed to load meetings:', err);
+    } finally {
+      setLoadingMeetings(false);
+    }
+  }, [token]);
+
   useEffect(() => {
     fetchActivePlan();
     fetchMyContacts();
-  }, [fetchActivePlan, fetchMyContacts]);
+    fetchMyMeetings();
+  }, [fetchActivePlan, fetchMyContacts, fetchMyMeetings]);
 
   const toggleExpandCard = (id) => {
     setExpandedCardId(prev => (prev === id ? null : id));
@@ -301,6 +319,55 @@ export default function UserDashboard() {
 
       {/* ── Two-column layout ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+
+        {/* ── My Meetings ── */}
+        <div id="my-meetings-section" style={{ ...card, padding: '1.5rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+            <h2 style={{ fontSize: 18, fontWeight: 600, color: 'var(--dash-text-primary)', margin: 0 }}>
+              My Meetings
+            </h2>
+            <Link to="/book-meeting" style={{ fontSize: 13, color: 'var(--accent-color)', textDecoration: 'none' }}>
+              + Request Meeting
+            </Link>
+          </div>
+
+          {loadingMeetings ? (
+             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+             {[1, 2].map(i => (
+               <div key={i} style={{ background: 'var(--dash-list-item-bg)', borderRadius: 10, padding: '14px 16px' }}>
+                 <div className="skeleton" style={{ width: '60%', height: 14, marginBottom: 8 }} />
+                 <div className="skeleton" style={{ width: '40%', height: 12 }} />
+               </div>
+             ))}
+           </div>
+          ) : myMeetings.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--dash-text-muted)' }}>
+              <div style={{ fontSize: 36, marginBottom: 12 }}>📅</div>
+              <p style={{ fontSize: 14, marginBottom: 16 }}>No meetings scheduled</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {myMeetings.map(m => (
+                 <div key={m._id} style={{ background: 'var(--dash-list-item-bg)', borderRadius: 10, padding: '14px 16px' }}>
+                    <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--dash-text-primary)', margin: '0 0 4px' }}>{m.topic}</p>
+                    <p style={{ fontSize: 12, color: 'var(--dash-text-secondary)', margin: '0 0 8px' }}>
+                      {new Date(m.date).toLocaleDateString()} at {m.time}
+                    </p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 11, padding: '3px 10px', borderRadius: 20, background: 'rgba(59,130,246,0.1)', color: '#3b82f6', textTransform: 'uppercase' }}>
+                        {m.status}
+                      </span>
+                      {m.meetingLink && (
+                        <a href={m.meetingLink} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#10b981', textDecoration: 'none' }}>
+                          Join Link ↗
+                        </a>
+                      )}
+                    </div>
+                 </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* ── My Inquiries ── */}
         <div id="my-inquiries-section" style={{ ...card, padding: '1.5rem' }}>
