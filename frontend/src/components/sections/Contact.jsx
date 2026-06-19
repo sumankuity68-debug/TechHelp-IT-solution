@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
-import { contactAPI, expertsAPI } from '../../utils/api';
+import { contactAPI, expertsAPI, servicesAPI } from '../../utils/api';
 import {
   fadeInUp,
   fadeIn,
@@ -28,6 +28,7 @@ export default function Contact() {
     preferences: ''
   });
   const [experts, setExperts] = useState([]);
+  const [services, setServices] = useState([]);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -57,6 +58,14 @@ export default function Contact() {
         }
       })
       .catch(err => console.error('Error fetching experts:', err));
+
+    servicesAPI.getAll()
+      .then(res => {
+        if (res.success) {
+          setServices(res.data || []);
+        }
+      })
+      .catch(err => console.error('Error fetching services:', err));
   }, []);
 
   const handleChange = (e) => {
@@ -308,10 +317,11 @@ export default function Contact() {
                       onBlur={e => e.target.style.borderColor = 'var(--border-color)'}
                     >
                       <option value="" style={{ background: 'var(--bg-secondary)' }}>Select a service...</option>
-                      <option value="web" style={{ background: 'var(--bg-secondary)' }}>Web Development</option>
-                      <option value="app" style={{ background: 'var(--bg-secondary)' }}>App Development</option>
-                      <option value="design" style={{ background: 'var(--bg-secondary)' }}>UI/UX Design</option>
-                      <option value="marketing" style={{ background: 'var(--bg-secondary)' }}>Digital Marketing</option>
+                      {services.map(srv => (
+                        <option key={srv._id} value={srv.title} style={{ background: 'var(--bg-secondary)' }}>
+                          {srv.title}
+                        </option>
+                      ))}
                     </select>
                   </div>
                   <div>
