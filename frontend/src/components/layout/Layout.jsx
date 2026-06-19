@@ -5,7 +5,6 @@ import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from './Navbar';
 import Footer from './Footer';
-import Chatbot from '../ui/Chatbot';
 
 const pageVariants = {
   hidden:  { opacity: 0, y: 12 },
@@ -40,7 +39,6 @@ export default function Layout({ children }) {
         </motion.main>
       </AnimatePresence>
       <Footer />
-      <Chatbot />
     </div>
   );
 }
