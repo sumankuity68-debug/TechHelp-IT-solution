@@ -5,6 +5,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useToast } from '../../context/ToastContext';
 import usePagination from '../../hooks/usePagination';
 import { contactAPI, usersAPI, servicesAPI, expertsAPI, ordersAPI, visitorsAPI } from '../../utils/api';
+import Chatbot from '../../components/ui/Chatbot';
 
 export default function AdminDashboard() {
   const { user, logout, token } = useAuth();
@@ -2278,6 +2279,7 @@ function PaginationControls({ pagination }) {
           Next
         </button>
       </div>
+      <Chatbot />
     </div>
   );
 }

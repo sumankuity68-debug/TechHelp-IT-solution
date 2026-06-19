@@ -9,7 +9,6 @@ import Layout from './components/layout/Layout';
 import ProtectedRoute from './components/ui/ProtectedRoute';
 import PageLoader from './components/ui/PageLoader';
 import ErrorBoundary from './components/ui/ErrorBoundary';
-import Chatbot from './components/ui/Chatbot';
 import {
   ContentPageSkeleton,
   FormPageSkeleton,
@@ -126,7 +125,6 @@ function App() {
                   <Route path="*" element={<Suspense fallback={<ContentPageSkeleton />}><NotFoundPage /></Suspense>} />
                 </Routes>
               </Suspense>
-              <Chatbot />
             </ErrorBoundary>
           </AuthProvider>
         </Router>

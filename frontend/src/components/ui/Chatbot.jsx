@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 
@@ -57,8 +56,8 @@ export default function Chatbot() {
     }
   };
 
-  return createPortal(
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end" style={{ zIndex: 9999 }}>
+  return (
+    <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end">
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -161,7 +160,6 @@ export default function Chatbot() {
           </svg>
         )}
       </motion.button>
-    </div>,
-    document.body
+    </div>
   );
 }

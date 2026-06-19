@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '../../context/ToastContext';
 import { expertsAPI } from '../../utils/api';
+import Chatbot from '../../components/ui/Chatbot';
 
 export default function ExpertDashboard() {
   const { user, logout, token } = useAuth();
@@ -495,6 +496,7 @@ export default function ExpertDashboard() {
           </div>
         )}
       </div>
+      <Chatbot />
     </div>
   );
 }
