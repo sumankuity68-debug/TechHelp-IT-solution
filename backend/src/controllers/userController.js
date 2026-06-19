@@ -57,6 +57,15 @@ export const deleteUser = async (req, res) => {
   }
 };
 
+export const purgeNormalUsers = async (req, res) => {
+  try {
+    const result = await User.deleteMany({ role: 'user' });
+    res.status(200).json({ success: true, message: `Deleted ${result.deletedCount} users` });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error purging users' });
+  }
+};
+
 // Update user role (admin only)
 export const updateUserRole = async (req, res) => {
   try {

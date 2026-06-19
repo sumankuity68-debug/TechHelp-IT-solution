@@ -88,6 +88,11 @@ export const contactAPI = {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json', ...authHeader() },
     }).then(handleResponse),
+
+  getUniqueVisitors: () =>
+    fetch(`${BASE}/contact/visitors/count`, {
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+    }).then(handleResponse),
 };
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -194,6 +199,12 @@ export const usersAPI = {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', ...authHeader() },
       body: JSON.stringify(data),
+    }).then(handleResponse),
+
+  purgeNormalUsers: () =>
+    fetch(`${BASE}/users/purge/normal-users`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
     }).then(handleResponse),
 };
 

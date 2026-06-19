@@ -20,21 +20,24 @@ const stagger = {
 export default function AdminPortalHome() {
   const { user } = useAuth();
   const navigate  = useNavigate();
-  const [stats, setStats]   = useState({ users: '—', inquiries: '—', pending: '—' });
+  const [stats, setStats]   = useState({ users: '—', inquiries: '—', pending: '—', visitors: '—' });
   const [loading, setLoading] = useState(true);
 
   // Fetch quick stats
   useEffect(() => {
     (async () => {
       try {
-        const [uData, cData] = await Promise.all([
-          usersAPI.getAll({ limit: 1 }),
+        const [uData, cData, vData] = await Promise.all([
+          usersAPI.getAll({ limit: 1, role: 'user' }), // Only count normal users
           contactAPI.getAll({ limit: 100 }),
+          contactAPI.getUniqueVisitors(), // Fetch unique email visitors
         ]);
         const total   = uData.pagination?.total || uData.count || 0;
         const pending = cData.data?.filter(c => c.status === 'new' || c.status === 'pending').length || 0;
         const contacts = cData.pagination?.total || cData.count || cData.data?.length || 0;
-        setStats({ users: total, inquiries: contacts, pending });
+        const visitors = vData.count || 0;
+        
+        setStats({ users: total, inquiries: contacts, pending, visitors });
       } catch { /* silent */ }
       setLoading(false);
     })();
@@ -50,6 +53,7 @@ export default function AdminPortalHome() {
   ];
 
   const statCards = [
+    { label: 'Website Visitors', value: stats.visitors, icon: '🌐', color: '#8b5cf6' },
     { label: 'Total Users',    value: stats.users,    icon: '👥', color: '#3b82f6' },
     { label: 'Total Inquiries',value: stats.inquiries, icon: '📧', color: '#10b981' },
     { label: 'Pending Items',  value: stats.pending,  icon: '⏳', color: '#f59e0b' },

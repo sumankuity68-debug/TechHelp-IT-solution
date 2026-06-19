@@ -157,6 +157,16 @@ export const getAllContacts = async (req, res) => {
   }
 };
 
+export const getUniqueVisitorCount = async (req, res) => {
+  try {
+    const emails = await Contact.distinct('email');
+    res.status(200).json({ success: true, count: emails.length });
+  } catch (error) {
+    console.error('Get unique visitors error:', error);
+    res.status(500).json({ success: false, message: 'Server error fetching visitor count' });
+  }
+};
+
 export const updateContactStatus = async (req, res) => {
   try {
     const { status } = req.body;

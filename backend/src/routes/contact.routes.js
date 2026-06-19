@@ -6,6 +6,7 @@ import {
   getMyContacts,
   updateContactStatus,
   deleteContact,
+  getUniqueVisitorCount,
 } from '../controllers/contactController.js';
 import { protect, admin } from '../middleware/auth.js';
 import { contactLimiter } from '../middleware/rateLimiter.js';
@@ -30,6 +31,7 @@ router.get('/mine', protect, getMyContacts);
 
 // Admin only routes
 router.get('/', protect, admin, getAllContacts);
+router.get('/visitors/count', protect, admin, getUniqueVisitorCount);
 router.put('/:id', protect, admin, updateContactStatus);
 router.delete('/:id', protect, admin, deleteContact);
 

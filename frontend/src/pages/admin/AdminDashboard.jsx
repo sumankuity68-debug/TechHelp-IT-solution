@@ -35,6 +35,7 @@ export default function AdminDashboard() {
     totalExperts: 0,
     pendingInquiries: 0,
     totalPaid: 0,
+    uniqueVisitors: 0,
   });
   const [recentContacts, setRecentContacts] = useState([]);
   const [services, setServices] = useState([]);
@@ -137,11 +138,12 @@ export default function AdminDashboard() {
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
-      const [contactData, servicesData, usersData, expertsData] = await Promise.all([
+      const [contactData, servicesData, usersData, expertsData, visitorsData] = await Promise.all([
         contactAPI.getAll({ limit: 100 }), // Get enough entries to compute stats/recent
         servicesAPI.getAll(),
         usersAPI.getAll({ limit: 1, role: 'user' }), // Just query for total user count
         expertsAPI.getAll(),
+        contactAPI.getUniqueVisitors(),
       ]);
 
       if (contactData.success) {
@@ -165,6 +167,10 @@ export default function AdminDashboard() {
       if (expertsData.success) {
         setExperts(expertsData.data);
         setStats(prev => ({ ...prev, totalExperts: expertsData.count || expertsData.data.length }));
+      }
+
+      if (visitorsData.success) {
+        setStats(prev => ({ ...prev, uniqueVisitors: visitorsData.count || 0 }));
       }
 
     } catch (error) {
@@ -693,6 +699,7 @@ export default function AdminDashboard() {
                     { label: 'Total Users',        value: stats.totalUsers,      icon: '👥', color: '#06b6d4' },
                     { label: 'Paid Users',         value: stats.totalPaid,       icon: '💳', color: '#22c55e' },
                     { label: "Today's Visitors",   value: visitorSummary.today,  icon: '👁️', color: '#ec4899' },
+                    { label: 'Unique Visitors',    value: stats.uniqueVisitors,  icon: '🌐', color: '#8b5cf6' },
                   ].map((s, idx) => (
                     <div key={idx}
                       onClick={() => s.label === 'Paid Users' ? handleTabChange('payments') : null}
