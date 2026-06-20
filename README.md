@@ -14,6 +14,13 @@ A complete, production-ready Full-Stack IT Agency web application built using th
 
 ---
 
+### 👨‍🏫 Evaluator / Testing Information
+If you are evaluating this project, you can test the admin and payment features using the following credentials:
+- **Admin Registration Code:** `TECHHELP2026ADMIN` *(Use this code during Sign Up to automatically get Admin privileges)*
+- **Test Payment Card:** `4242 4242 4242 4242` (Any future expiration date, any 3-digit CVC)
+
+---
+
 ## 📑 Table of Contents
 
 - [Features](#-features)
